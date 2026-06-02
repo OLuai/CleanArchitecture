@@ -1,8 +1,11 @@
-﻿using CleanArchitecture.Application.Common.Interfaces;
+using CleanArchitecture.Application.Common.Interfaces;
+using CleanArchitecture.Application.Common.Security;
+using CleanArchitecture.Domain.Constants;
 using CleanArchitecture.Domain.Enums;
 
 namespace CleanArchitecture.Application.TodoItems.Commands.UpdateTodoItemDetail;
 
+[Authorize(Permissions = Permissions.TodoItems.Update)]
 public record UpdateTodoItemDetailCommand : IRequest
 {
     public int Id { get; init; }
@@ -26,7 +29,7 @@ public class UpdateTodoItemDetailCommandHandler : IRequestHandler<UpdateTodoItem
     public async Task Handle(UpdateTodoItemDetailCommand request, CancellationToken cancellationToken)
     {
         var entity = await _context.TodoItems
-            .FindAsync(new object[] { request.Id }, cancellationToken);
+            .FindAsync([request.Id], cancellationToken);
 
         Guard.Against.NotFound(request.Id, entity);
 

@@ -1,9 +1,11 @@
-﻿using CleanArchitecture.Application.Common.Interfaces;
+using CleanArchitecture.Application.Common.Interfaces;
+using CleanArchitecture.Application.Common.Security;
+using CleanArchitecture.Domain.Constants;
 using CleanArchitecture.Domain.Entities;
-using CleanArchitecture.Domain.Events;
 
 namespace CleanArchitecture.Application.TodoItems.Commands.CreateTodoItem;
 
+[Authorize(Permissions = Permissions.TodoItems.Create)]
 public record CreateTodoItemCommand : IRequest<int>
 {
     public int ListId { get; init; }
@@ -28,8 +30,6 @@ public class CreateTodoItemCommandHandler : IRequestHandler<CreateTodoItemComman
             Title = request.Title,
             Done = false
         };
-
-        entity.AddDomainEvent(new TodoItemCreatedEvent(entity));
 
         _context.TodoItems.Add(entity);
 

@@ -1,4 +1,4 @@
-﻿using CleanArchitecture.Application.Common.Interfaces;
+using CleanArchitecture.Application.Common.Interfaces;
 
 namespace CleanArchitecture.Application.TodoLists.Commands.UpdateTodoList;
 

@@ -1,6 +1,6 @@
-﻿namespace CleanArchitecture.Domain.Entities;
+namespace CleanArchitecture.Domain.Entities;
 
-public class TodoItem : BaseAuditableEntity
+public class TodoItem : BaseAuditableEntity<int>
 {
     public int ListId { get; set; }
 
@@ -9,8 +9,6 @@ public class TodoItem : BaseAuditableEntity
     public string? Note { get; set; }
 
     public PriorityLevel Priority { get; set; }
-
-    public DateTime? Reminder { get; set; }
 
     private bool _done;
     public bool Done

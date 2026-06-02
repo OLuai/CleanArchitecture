@@ -1,9 +1,10 @@
-﻿using System.Reflection;
+using System.Reflection;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Domain.Entities;
 using CleanArchitecture.Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
+using CleanArchitecture.Infrastructure.IdGeneration;
 
 namespace CleanArchitecture.Infrastructure.Data;
 
@@ -14,6 +15,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<TodoList> TodoLists => Set<TodoList>();
 
     public DbSet<TodoItem> TodoItems => Set<TodoItem>();
+
+    public DbSet<IdSequence> IdSequences => Set<IdSequence>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

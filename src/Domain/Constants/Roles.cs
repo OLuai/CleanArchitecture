@@ -1,4 +1,4 @@
-﻿namespace CleanArchitecture.Domain.Constants;
+namespace CleanArchitecture.Domain.Constants;
 
 public abstract class Roles
 {

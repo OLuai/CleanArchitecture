@@ -1,4 +1,4 @@
-﻿using CleanArchitecture.Domain.Entities;
+using CleanArchitecture.Domain.Entities;
 
 namespace CleanArchitecture.Application.TodoLists.Queries.GetTodos;
 
@@ -6,7 +6,7 @@ public class TodoListDto
 {
     public TodoListDto()
     {
-        Items = Array.Empty<TodoItemDto>();
+        Items = [];
     }
 
     public int Id { get; init; }

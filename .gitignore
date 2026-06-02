@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 .azure
+
+# Generated OpenAPI document (regenerated on build)
+src/Web/wwwroot/openapi/

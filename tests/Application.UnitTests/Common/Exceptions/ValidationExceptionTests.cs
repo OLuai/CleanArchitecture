@@ -1,6 +1,6 @@
-﻿using CleanArchitecture.Application.Common.Exceptions;
 using FluentValidation.Results;
 using NUnit.Framework;
+using CleanArchitecture.Application.Common.Exceptions;
 using Shouldly;
 
 namespace CleanArchitecture.Application.UnitTests.Common.Exceptions;
@@ -25,8 +25,8 @@ public class ValidationExceptionTests
 
         var actual = new ValidationException(failures).Errors;
 
-        actual.Keys.ShouldBe(new string[] { "Age" });
-        actual["Age"].ShouldBe(new string[] { "must be over 18" });
+        actual.Keys.ShouldBe(new string[] { "age" });
+        actual["age"].ShouldBe(new string[] { "must be over 18" });
     }
 
     [Test]
@@ -44,15 +44,15 @@ public class ValidationExceptionTests
 
         var actual = new ValidationException(failures).Errors;
 
-        actual.Keys.ShouldBe(new string[] { "Password", "Age" }, ignoreOrder: true);
+        actual.Keys.ShouldBe(new string[] { "password", "age" }, ignoreOrder: true);
 
-        actual["Age"].ShouldBe(new string[]
+        actual["age"].ShouldBe(new string[]
         {
                 "must be 25 or younger",
                 "must be 18 or older",
         }, ignoreOrder: true);
 
-        actual["Password"].ShouldBe(new string[]
+        actual["password"].ShouldBe(new string[]
         {
                 "must contain lower case letter",
                 "must contain upper case letter",

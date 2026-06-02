@@ -1,7 +1,7 @@
-﻿using CleanArchitecture.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using CleanArchitecture.Domain.Common;
 
 namespace CleanArchitecture.Infrastructure.Data.Interceptors;
 
@@ -34,15 +34,17 @@ public class DispatchDomainEventsInterceptor : SaveChangesInterceptor
         if (context == null) return;
 
         var entities = context.ChangeTracker
-            .Entries<BaseEntity>()
-            .Where(e => e.Entity.DomainEvents.Any())
-            .Select(e => e.Entity);
+            .Entries()
+            .Select(e => e.Entity)
+            .OfType<IHasDomainEvents>()
+            .Where(e => e.DomainEvents.Any())
+            .ToList();
 
         var domainEvents = entities
             .SelectMany(e => e.DomainEvents)
             .ToList();
 
-        entities.ToList().ForEach(e => e.ClearDomainEvents());
+        entities.ForEach(e => e.ClearDomainEvents());
 
         foreach (var domainEvent in domainEvents)
             await _mediator.Publish(domainEvent);

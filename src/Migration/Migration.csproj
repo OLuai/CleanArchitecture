@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CleanArchitecture.Migration</RootNamespace>
+    <AssemblyName>CleanArchitecture.Migration</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <Target Name="GenerateProductionSqlScript"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' and '$(GenerateMigrationScriptOnBuild)' != 'false'">
+    <Message Importance="high" Text="Generating idempotent production migration script..." />
+    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." ContinueOnError="WarnAndContinue" />
+    <Exec Command="dotnet ef migrations script --idempotent --no-build --configuration $(Configuration) --project ..\Infrastructure\Infrastructure.csproj --startup-project $(MSBuildProjectFullPath) --output $(OutputPath)migration-script.sql"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ContinueOnError="WarnAndContinue" />
+  </Target>
+
+</Project>

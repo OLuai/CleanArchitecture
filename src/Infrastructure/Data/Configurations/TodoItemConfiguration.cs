@@ -1,6 +1,6 @@
-﻿using CleanArchitecture.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CleanArchitecture.Domain.Entities;
 
 namespace CleanArchitecture.Infrastructure.Data.Configurations;
 

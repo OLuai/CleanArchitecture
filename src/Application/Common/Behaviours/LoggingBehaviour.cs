@@ -1,6 +1,6 @@
-﻿using CleanArchitecture.Application.Common.Interfaces;
 using MediatR.Pipeline;
 using Microsoft.Extensions.Logging;
+using CleanArchitecture.Application.Common.Interfaces;
 
 namespace CleanArchitecture.Application.Common.Behaviours;
 

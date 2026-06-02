@@ -1,6 +1,7 @@
-﻿namespace CleanArchitecture.Domain.Common;
+namespace CleanArchitecture.Domain.Common;
 
-public abstract class BaseAuditableEntity : BaseEntity
+public abstract class BaseAuditableEntity<TKey> : BaseEntity<TKey>, IAuditableEntity
+    where TKey : notnull
 {
     public DateTimeOffset Created { get; set; }
 
@@ -9,4 +10,8 @@ public abstract class BaseAuditableEntity : BaseEntity
     public DateTimeOffset LastModified { get; set; }
 
     public string? LastModifiedBy { get; set; }
+}
+
+public abstract class BaseAuditableEntity : BaseAuditableEntity<long>
+{
 }

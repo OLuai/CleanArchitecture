@@ -1,4 +1,4 @@
-﻿using CleanArchitecture.Application.Common.Models;
+using CleanArchitecture.Application.Common.Models;
 
 namespace CleanArchitecture.Application.Common.Interfaces;
 

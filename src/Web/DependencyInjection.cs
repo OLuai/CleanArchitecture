@@ -1,13 +1,9 @@
-﻿using Azure.Identity;
+using System.Text.Json;
+using Azure.Identity;
+using Microsoft.AspNetCore.Mvc;
 using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Infrastructure.Data;
 using CleanArchitecture.Web.Services;
-using Microsoft.AspNetCore.Mvc;
-
-#if (UseApiOnly)
-using NSwag;
-using NSwag.Generation.Processors.Security;
-#endif
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -20,40 +16,40 @@ public static class DependencyInjection
         builder.Services.AddScoped<IUser, CurrentUser>();
 
         builder.Services.AddHttpContextAccessor();
-#if (!UseAspire)
-        builder.Services.AddHealthChecks()
-            .AddDbContextCheck<ApplicationDbContext>();
-#endif
 
-        builder.Services.AddExceptionHandler<CustomExceptionHandler>();
+        builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
 
-#if (!UseApiOnly)
-        builder.Services.AddRazorPages();
-#endif
+        // Required so that UseStatusCodePages can fill empty 4xx/5xx responses
+        // (e.g. 401 issued directly by the authentication middleware) with a ProblemDetails JSON body.
+        builder.Services.AddProblemDetails(options =>
+        {
+            options.CustomizeProblemDetails = ctx =>
+            {
+                ctx.ProblemDetails.Instance ??= ctx.HttpContext.Request.Path;
+                ctx.ProblemDetails.Extensions["traceId"] = ctx.HttpContext.TraceIdentifier;
+            };
+        });
 
         // Customise default API behaviour
         builder.Services.Configure<ApiBehaviorOptions>(options =>
             options.SuppressModelStateInvalidFilter = true);
 
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+        });
+
         builder.Services.AddEndpointsApiExplorer();
 
-        builder.Services.AddOpenApiDocument((configure, sp) =>
+        builder.Services.AddOpenApi(options =>
         {
-            configure.Title = "CleanArchitecture API";
-
-#if (UseApiOnly)
-            // Add JWT
-            configure.AddSecurity("JWT", Enumerable.Empty<string>(), new OpenApiSecurityScheme
-            {
-                Type = OpenApiSecuritySchemeType.ApiKey,
-                Name = "Authorization",
-                In = OpenApiSecurityApiKeyLocation.Header,
-                Description = "Type into the textbox: Bearer {your JWT token}."
-            });
-
-            configure.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("JWT"));
-#endif
+            options.AddOperationTransformer<ApiExceptionOperationTransformer>();
+            options.AddOperationTransformer<IdentityApiOperationTransformer>();
+            options.AddDocumentTransformer<PermissionsDocumentTransformer>();
         });
+
+        builder.Services.AddCors();
     }
 
     public static void AddKeyVaultIfConfigured(this IHostApplicationBuilder builder)

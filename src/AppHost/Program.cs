@@ -1,28 +1,46 @@
+using CleanArchitecture.Shared;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-#if (UsePostgreSQL)
-var databaseName = "CleanArchitectureDb";
+builder.AddAzureContainerAppEnvironment("aca-env");
+
+var postgresPassword = builder.AddParameter(Services.PostgresPasswordParameter, secret: true);
 
 var postgres = builder
-    .AddPostgres("postgres")
-    // Set the name of the default database to auto-create on container startup.
-    .WithEnvironment("POSTGRES_DB", databaseName);
+    .AddPostgres(Services.PostgresServer, password: postgresPassword)
+    .WithContainerName("cleanarchitecture-postgres")
+    .WithHostPort(5431)
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithDataVolume("cleanarchitecture-pg-data")
+    .WithPgAdmin(pgAdmin => pgAdmin
+        .WithContainerName("cleanarchitecture-pgadmin")
+        .WithHostPort(5050)
+        .WithLifetime(ContainerLifetime.Persistent))
+    .AddDatabase(Services.Database);
 
-var database = postgres.AddDatabase(databaseName);
+var migration = builder.AddProject<Projects.Migration>(Services.Migration)
+    .WithReference(postgres)
+    .WaitFor(postgres);
 
-builder.AddProject<Projects.Web>("web")
-    .WithReference(database)
-    .WaitFor(database);
-#elif (UseSqlite)
-builder.AddProject<Projects.Web>("web");
-#else
-var sql = builder.AddSqlServer("sql");
+var web = builder.AddProject<Projects.Web>(Services.WebApi)
+    .WithReference(postgres)
+    .WaitForCompletion(migration)
+    .WithExternalHttpEndpoints()
+    .WithAspNetCoreEnvironment()
+    .WithUrlForEndpoint("http", url =>
+    {
+        url.DisplayText = "Scalar API Reference";
+        url.Url = "/scalar";
+    });
 
-var database = sql.AddDatabase("CleanArchitectureDb");
-
-builder.AddProject<Projects.Web>("web")
-    .WithReference(database)
-    .WaitFor(database);
-#endif
+if (builder.ExecutionContext.IsRunMode)
+{
+    builder.AddJavaScriptApp(Services.WebFrontend, "./../Web/ClientApp")
+        .WithRunScript("start")
+        .WithReference(web)
+        .WaitFor(web)
+        .WithHttpEndpoint(env: "PORT")
+        .WithExternalHttpEndpoints();
+}
 
 builder.Build().Run();

@@ -1,4 +1,4 @@
-﻿using CleanArchitecture.Domain.Entities;
+using CleanArchitecture.Domain.Entities;
 
 namespace CleanArchitecture.Application.TodoLists.Queries.GetTodos;
 
@@ -20,7 +20,7 @@ public class TodoItemDto
     {
         public Mapping()
         {
-            CreateMap<TodoItem, TodoItemDto>().ForMember(d => d.Priority, 
+            CreateMap<TodoItem, TodoItemDto>().ForMember(d => d.Priority,
                 opt => opt.MapFrom(s => (int)s.Priority));
         }
     }

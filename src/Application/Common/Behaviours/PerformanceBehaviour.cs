@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
-using CleanArchitecture.Application.Common.Interfaces;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using CleanArchitecture.Application.Common.Interfaces;
 
 namespace CleanArchitecture.Application.Common.Behaviours;
 
