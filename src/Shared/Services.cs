@@ -2,11 +2,14 @@ namespace CleanArchitecture.Shared;
 
 public static class Services
 {
+    //#if (!UseApiOnly)
     /// <summary>
     /// The name of the Web Frontend service.
     /// This service is responsible for hosting the frontend application.
     /// </summary>
     public const string WebFrontend = "webfrontend";
+
+    //#endif
 
     /// <summary>
     /// The name of the Web API service.

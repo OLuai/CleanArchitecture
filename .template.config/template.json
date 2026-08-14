@@ -9,7 +9,7 @@
     "ASP.NET",
     "Clean Architecture"],
   "name": "Clean Architecture Solution (React + Aspire)",
-  "description": "An opinionated Clean Architecture Solution Template: ASP.NET Core + .NET Aspire backend with a React 19 / TanStack / shadcn / Tailwind v4 / Vite / Orval single-page application and PostgreSQL.",
+  "description": "An opinionated Clean Architecture Solution Template: ASP.NET Core + .NET Aspire backend with an optional React 19 / TanStack / shadcn / Tailwind v4 / Vite / Orval dashboard and PostgreSQL.",
   "identity": "Clean.Architecture.Solution.CSharp",
   "groupIdentity": "Clean.Architecture.Solution",
   "shortName": "ca-sln",
@@ -36,9 +36,31 @@
         "value": "https://github.com/OLuai/CleanArchitecture"
       }
     },
-    "UseApiOnly": { "type": "computed", "value": "false" },
+    "ClientFramework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "React",
+          "description": "React 19 dashboard (Vite, TanStack, shadcn/ui, Tailwind v4, Orval) served by the API."
+        },
+        {
+          "choice": "None",
+          "description": "Web API only. Drops the SPA, its Aspire resource and the acceptance tests."
+        }
+      ],
+      "defaultValue": "React",
+      "description": "Whether to include the React dashboard or generate a Web API only."
+    },
+    "UseReact": {
+      "type": "computed",
+      "value": "(ClientFramework == \"React\")"
+    },
+    "UseApiOnly": {
+      "type": "computed",
+      "value": "(ClientFramework == \"None\")"
+    },
     "UseAspire": { "type": "computed", "value": "true" },
-    "UseReact": { "type": "computed", "value": "true" },
     "UseAngular": { "type": "computed", "value": "false" },
     "UsePostgreSQL": { "type": "computed", "value": "true" },
     "UseSqlServer": { "type": "computed", "value": "false" },
@@ -82,6 +104,23 @@
           "condition": "(UseGithubActions)",
           "include": [
             ".github/**/*"
+          ]
+        },
+        {
+          "condition": "(UseApiOnly)",
+          "exclude": [
+            "src/Web/ClientApp/**",
+            "tests/Web.AcceptanceTests/**",
+            "deploy/Dockerfile.web"
+          ],
+          "rename": {
+            "deploy/Dockerfile.web-apionly": "deploy/Dockerfile.web"
+          }
+        },
+        {
+          "condition": "(!UseApiOnly)",
+          "exclude": [
+            "deploy/Dockerfile.web-apionly"
           ]
         }
       ]

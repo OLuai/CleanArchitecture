@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using CleanArchitecture.Application.Common.Interfaces;
+using CleanArchitecture.Application.Common.Security;
 using CleanArchitecture.Infrastructure.Data;
 using CleanArchitecture.Infrastructure.Data.Interceptors;
 using CleanArchitecture.Infrastructure.Identity;
@@ -40,11 +41,24 @@ public static class DependencyInjection
 
         builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
+        // Two credential shapes, one pipeline: browsers get the Identity application cookie,
+        // non-browser clients get bearer tokens from the Identity endpoints
+        // (POST /api/Users/identity/login?useCookies=false). A policy scheme picks per request,
+        // so endpoints and authorization policies never have to care which was used.
         builder.Services.AddAuthentication(options =>
             {
-                options.DefaultScheme = IdentityConstants.ApplicationScheme;
+                options.DefaultScheme = AuthenticationSchemes.CookieOrBearer;
                 options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
             })
+            .AddPolicyScheme(AuthenticationSchemes.CookieOrBearer, AuthenticationSchemes.CookieOrBearer, options =>
+            {
+                options.ForwardDefaultSelector = context =>
+                    context.Request.Headers.Authorization.ToString()
+                        .StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                        ? IdentityConstants.BearerScheme
+                        : IdentityConstants.ApplicationScheme;
+            })
+            .AddBearerToken(IdentityConstants.BearerScheme)
             .AddIdentityCookies();
 
         // The Identity Application cookie defaults to redirecting (302) to /Account/Login on

@@ -10,14 +10,13 @@ permissions:
 
 jobs:
   test-template:
-    name: ${{ matrix.client-framework }}-${{ matrix.database }}
+    name: ${{ matrix.client-framework }}
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        client-framework: [angular, react, none]
-        database: [sqlite, sqlserver, postgresql]
+        client-framework: [React, None]
 
     steps:
     - uses: actions/checkout@v7
@@ -27,20 +26,18 @@ jobs:
       uses: actions/setup-dotnet@v6
 
     - name: Install Node & cache npm packages
-      if: matrix.client-framework != 'none'
+      if: matrix.client-framework != 'None'
       uses: actions/setup-node@v7
       with:
         node-version: '24.x'
         cache: 'npm'
-        cache-dependency-path: |
-          src/Web/ClientApp/package-lock.json
-          src/Web/ClientApp-React/package-lock.json
+        cache-dependency-path: src/Web/ClientApp/package-lock.json
 
     - name: Cache NuGet packages
       uses: actions/cache@v6
       with:
         path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ matrix.client-framework }}-${{ matrix.database }}-${{ hashFiles('**/Directory.Packages.props', '**/*.csproj') }}
+        key: ${{ runner.os }}-nuget-${{ matrix.client-framework }}-${{ hashFiles('**/Directory.Packages.props', '**/*.csproj') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
 
@@ -51,27 +48,38 @@ jobs:
       run: |
         dotnet new ca-sln \
           --client-framework ${{ matrix.client-framework }} \
-          --database ${{ matrix.database }} \
           --name CleanArchitecture \
           --output generated \
           --no-update-check
+
+    # An API-only solution must not carry any trace of the SPA: no ClientApp, no acceptance
+    # tests, and no leftover conditional markers anywhere in the generated tree.
+    - name: Check API-only output
+      if: matrix.client-framework == 'None'
+      working-directory: generated
+      run: |
+        test ! -d src/Web/ClientApp || { echo "ClientApp should not exist"; exit 1; }
+        test ! -d tests/Web.AcceptanceTests || { echo "Web.AcceptanceTests should not exist"; exit 1; }
+        ! grep -rn "UseApiOnly" src tests || { echo "Conditional markers leaked"; exit 1; }
 
     - name: Build solution
       working-directory: generated
       run: dotnet build --configuration Release
 
     - name: Build client app
-      if: matrix.client-framework != 'none'
+      if: matrix.client-framework != 'None'
       working-directory: generated/src/Web/ClientApp
       run: |
         npm ci
         npm run build
 
     - name: Install Playwright browsers
-      if: matrix.client-framework != 'none'
+      if: matrix.client-framework != 'None'
       working-directory: generated
       run: pwsh artifacts/bin/Web.AcceptanceTests/release/playwright.ps1 install --with-deps chromium
 
+    # Functional and acceptance tests need a container runtime for PostgreSQL; the unit tests
+    # are what this matrix is here to guard.
     - name: Test solution
       working-directory: generated
       run: dotnet test --no-build --configuration Release

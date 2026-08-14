@@ -6,12 +6,15 @@ param (
 $ErrorActionPreference = "Stop"
 
 $solution = "CleanArchitecture.slnx"
-$clientApps = @("./src/Web/ClientApp", "./src/Web/ClientApp-React")
+#if (!UseApiOnly)
+$clientApps = @("./src/Web/ClientApp")
+#endif
 
 Write-Host "Building solution..."
 dotnet build $solution --configuration $Configuration
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+#if (!UseApiOnly)
 foreach ($clientApp in $clientApps) {
     if (Test-Path $clientApp) {
         Write-Host "Installing client dependencies ($clientApp)..."
@@ -26,6 +29,7 @@ foreach ($clientApp in $clientApps) {
         }
     }
 }
+#endif
 
 Write-Host "Testing solution..."
 if ($Target -eq "Basic") {

@@ -54,7 +54,9 @@ app.UseCors();
 
 app.UseRateLimiter();
 
+#if (!UseApiOnly)
 app.UseFileServer();
+#endif
 
 app.MapOpenApi();
 app.MapScalarApiReference();
@@ -97,6 +99,8 @@ app.MapEndpoints(typeof(Program).Assembly);
 // typo or a stale client build is a silent success the client cannot distinguish from real data.
 app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound));
 
+#if (!UseApiOnly)
 app.MapFallbackToFile("index.html");
+#endif
 
 app.Run();

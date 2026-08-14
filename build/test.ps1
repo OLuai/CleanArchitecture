@@ -1,6 +1,7 @@
+# Instantiates the template in each supported mode, then builds and tests the result.
+# Mirrors .github/workflows/test-templates.yml so the matrix can be reproduced locally.
 param (
-    [string[]]$ClientFramework = @("angular", "react", "none"),
-    [string[]]$Database = @("sqlite", "sqlserver", "postgresql")
+    [string[]]$ClientFramework = @("React", "None")
 )
 
 $outputPath = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts\template-tests"
@@ -8,11 +9,10 @@ $results = @()
 
 function CreateAndTestProject {
     param (
-        [string]$clientFramework,
-        [string]$database
+        [string]$clientFramework
     )
 
-    $name = "$clientFramework-$database"
+    $name = $clientFramework
     $projectPath = Join-Path $outputPath $name
 
     try {
@@ -24,17 +24,25 @@ function CreateAndTestProject {
         Write-Host "Creating project: $name"
         $startTime = Get-Date
 
-        dotnet new ca-sln --client-framework $clientFramework --database $database --name CleanArchitecture --output $projectPath --no-update-check
+        dotnet new ca-sln --client-framework $clientFramework --name CleanArchitecture --output $projectPath --no-update-check
         if ($LASTEXITCODE -ne 0) { throw "dotnet new ca-sln failed for $name" }
 
         $exitCode = 0
         Push-Location $projectPath
         try {
+            if ($clientFramework -eq "None") {
+                Write-Host "Checking API-only output: $name"
+                if (Test-Path "./src/Web/ClientApp") { throw "ClientApp should not exist for $name" }
+                if (Test-Path "./tests/Web.AcceptanceTests") { throw "Web.AcceptanceTests should not exist for $name" }
+                $leaked = Get-ChildItem -Path src, tests -Recurse -File | Select-String -Pattern "UseApiOnly" -SimpleMatch
+                if ($leaked) { throw "Conditional markers leaked for ${name}: $($leaked[0].Path)" }
+            }
+
             Write-Host "Building: $name"
             dotnet build --configuration Release
             if ($LASTEXITCODE -ne 0) { throw "Build failed for $name" }
 
-            if ($clientFramework -ne "none") {
+            if ($clientFramework -ne "None") {
                 Write-Host "Building client app: $name"
                 Push-Location "./src/Web/ClientApp"
                 try {
@@ -45,9 +53,7 @@ function CreateAndTestProject {
                 } finally {
                     Pop-Location
                 }
-            }
 
-            if ($clientFramework -ne "none") {
                 Write-Host "Installing Playwright browsers: $name"
                 pwsh artifacts/bin/Web.AcceptanceTests/release/playwright.ps1 install --with-deps chromium
                 if ($LASTEXITCODE -ne 0) { throw "Playwright install failed for $name" }
@@ -65,7 +71,6 @@ function CreateAndTestProject {
 
         $script:results += [PSCustomObject]@{
             ClientFramework = $clientFramework
-            Database        = $database
             ExitCode        = $exitCode
             Status          = if ($exitCode -eq 0) { "Success" } else { "Failure" }
             Duration        = $duration.ToString("c")
@@ -75,7 +80,6 @@ function CreateAndTestProject {
         Write-Host $_.Exception.Message
         $script:results += [PSCustomObject]@{
             ClientFramework = $clientFramework
-            Database        = $database
             ExitCode        = -1
             Status          = "Error"
             Duration        = "00:00:00.0000000"
@@ -88,12 +92,10 @@ if (-not (Test-Path $outputPath)) {
 }
 
 foreach ($cf in $ClientFramework) {
-    foreach ($db in $Database) {
-        CreateAndTestProject -clientFramework $cf -database $db
-    }
+    CreateAndTestProject -clientFramework $cf
 }
 
-$results | Format-Table -Property ClientFramework, Database, Status, Duration -AutoSize
+$results | Format-Table -Property ClientFramework, Status, Duration -AutoSize
 
 if ($results | Where-Object { $_.Status -ne "Success" }) {
     exit 1

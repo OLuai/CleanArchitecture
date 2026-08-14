@@ -9,17 +9,7 @@
         "text": "Client Framework"
       },
       "description": {
-        "text": "Select the Client Framework type, or select None for Web API only."
-      },
-      "isVisible": true
-    },
-    {
-      "id": "Database",
-      "name": {
-        "text": "Database"
-      },
-      "description": {
-        "text": "Select the database type."
+        "text": "Include the React dashboard, or select None for a Web API only."
       },
       "isVisible": true
     }
