@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -62,6 +63,12 @@ public static class DependencyInjection
                 return Task.CompletedTask;
             };
         });
+
+        // Without a durable key ring, Data Protection generates keys in the container filesystem:
+        // every redeploy invalidates all auth cookies and antiforgery tokens, and two replicas
+        // cannot read each other's. Persisting to the database fixes both.
+        builder.Services.AddDataProtection()
+            .PersistKeysToDbContext<ApplicationDbContext>();
 
         builder.Services.AddAuthorizationBuilder();
         builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();

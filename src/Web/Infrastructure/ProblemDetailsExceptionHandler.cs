@@ -1,9 +1,11 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using CleanArchitecture.Application.Common.Exceptions;
 using NotFoundException = CleanArchitecture.Application.Common.Exceptions.NotFoundException;
+using GuardNotFoundException = Ardalis.GuardClauses.NotFoundException;
 
 namespace CleanArchitecture.Web.Infrastructure;
 /// <summary>
@@ -29,21 +31,40 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
 
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
+        // ValidationException is handled outside the switch: it produces a ValidationProblemDetails
+        // whose per-field `Errors` dictionary would be dropped if the value travelled through the
+        // switch arms' common `ProblemDetails` type (the cast erases the derived property at
+        // serialization time). Keep its static type all the way to the writer.
+        if (exception is ValidationException ve)
+        {
+            return await WriteProblemAsync(httpContext, StatusCodes.Status400BadRequest,
+                new ValidationProblemDetails(ve.Errors)
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Une ou plusieurs erreurs de validation sont survenues.",
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                    Detail = ve.Message
+                },
+                cancellationToken);
+        }
+
         var (statusCode, problemDetails) = exception switch
         {
-            ValidationException ve => (StatusCodes.Status400BadRequest, (ProblemDetails)new ValidationProblemDetails(ve.Errors)
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Une ou plusieurs erreurs de validation sont survenues.",
-                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-                Detail = ve.Message
-            }),
             NotFoundException ne => (StatusCodes.Status404NotFound, new ProblemDetails
             {
                 Status = StatusCodes.Status404NotFound,
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
                 Title = "La ressource spécifiée est introuvable.",
                 Detail = ne.Message
+            }),
+            // Guard.Against.NotFound throws Ardalis.GuardClauses.NotFoundException, a distinct type
+            // from the aliased application one above; without this arm it would fall through to 500.
+            GuardNotFoundException gne => (StatusCodes.Status404NotFound, new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+                Title = "La ressource spécifiée est introuvable.",
+                Detail = gne.Message
             }),
             FriendlyException fe => (fe.StatusCode, BuildFriendly(fe)),
             UnauthorizedAccessException ue => (StatusCodes.Status401Unauthorized, new ProblemDetails
@@ -68,9 +89,23 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
             _logger.LogError(exception, "Unhandled exception processing {Method} {Path}", httpContext.Request.Method, httpContext.Request.Path);
         }
 
+        return await WriteProblemAsync(httpContext, statusCode, problemDetails, cancellationToken);
+    }
+
+    private static async Task<bool> WriteProblemAsync(
+        HttpContext httpContext, int statusCode, ProblemDetails problemDetails, CancellationToken cancellationToken)
+    {
         httpContext.Response.StatusCode = statusCode;
-        httpContext.Response.ContentType = "application/problem+json";
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        // Serialize by RUNTIME type (problemDetails.GetType()) rather than the parameter's static
+        // type, otherwise System.Text.Json omits derived properties such as
+        // ValidationProblemDetails.Errors. The content type is explicit because this overload
+        // would otherwise write application/json.
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            options: (JsonSerializerOptions?)null,
+            contentType: "application/problem+json",
+            cancellationToken);
         return true;
     }
 

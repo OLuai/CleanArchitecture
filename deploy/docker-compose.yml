@@ -1,0 +1,81 @@
+# Self-hosted deployment: PostgreSQL + the migration job + the web app, published through a
+# shared Traefik instance (see traefik/docker-compose.yml, deployed once per host).
+#
+# Every value comes from a .env file next to this one - see .env.example.
+# Usage:  docker compose --env-file .env up -d
+
+name: cleanarchitecture
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ${STACK_NAME}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Runs to completion before the web app starts, so the schema is never behind the code.
+  migration:
+    image: ${REGISTRY}/${IMAGE_NAMESPACE}/migration:${IMAGE_TAG}
+    container_name: ${STACK_NAME}-migration
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DOTNET_ENVIRONMENT: ${DOTNET_ENVIRONMENT}
+      ConnectionStrings__CleanArchitectureDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+    networks:
+      - internal
+
+  web:
+    image: ${REGISTRY}/${IMAGE_NAMESPACE}/web:${IMAGE_TAG}
+    container_name: ${STACK_NAME}-web
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${DOTNET_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__CleanArchitectureDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      # Traefik terminates TLS and forwards plain HTTP; Program.cs reads X-Forwarded-* to
+      # restore the real scheme. Without this the app would issue http:// redirects and
+      # non-secure cookies.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+    networks:
+      - internal
+      - web
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=cleanarchitecture_web
+      - traefik.http.routers.${STACK_NAME}-web.rule=Host(`${PUBLIC_HOST}`)
+      - traefik.http.routers.${STACK_NAME}-web.entrypoints=websecure
+      - traefik.http.routers.${STACK_NAME}-web.tls=true
+      - traefik.http.routers.${STACK_NAME}-web.tls.certresolver=letsencrypt
+      - traefik.http.services.${STACK_NAME}-web.loadbalancer.server.port=8080
+
+volumes:
+  pgdata:
+    name: ${STACK_NAME}-pgdata
+
+networks:
+  internal:
+    name: ${STACK_NAME}-internal
+    driver: bridge
+  web:
+    name: cleanarchitecture_web
+    external: true

@@ -1,0 +1,42 @@
+# Shared Traefik, deployed once per host. Listens on 80/443 and terminates TLS through
+# Let's Encrypt. Application stacks register themselves via Docker labels.
+#
+# First run, before any stack:
+#   docker network create cleanarchitecture_web
+#   docker compose --env-file .env up -d
+
+name: traefik
+
+services:
+  traefik:
+    image: traefik:v3.6.1
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --accesslog=true
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - cleanarchitecture_web
+
+volumes:
+  letsencrypt:
+
+networks:
+  cleanarchitecture_web:
+    name: cleanarchitecture_web
+    driver: bridge

@@ -1,0 +1,113 @@
+# Reusable deployment workflow: builds the web and migration images, pushes them to GHCR, then
+# runs deploy/deploy.sh on a self-hosted runner that has the target environment's .env file.
+#
+# Call it from an environment-specific workflow:
+#
+#   jobs:
+#     staging:
+#       uses: ./.github/workflows/_deploy.yml
+#       with:
+#         environment: staging
+#         env_dir: /srv/cleanarchitecture-staging
+#
+# The runner needs Docker and a checkout of deploy/.env in env_dir. PUBLIC_URL is a GitHub
+# Environment variable used for the post-deploy smoke test.
+
+name: Deploy (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub Environment name (staging | production)
+        required: true
+        type: string
+      env_dir:
+        description: Absolute path of the environment directory on the host
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compute image tag
+        id: meta
+        run: echo "image_tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR rejects uppercase namespaces, and GitHub org/user names may contain them.
+      - name: Lowercase repository namespace
+        id: ns
+        run: echo "value=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.web
+          push: true
+          tags: |
+            ghcr.io/${{ steps.ns.outputs.value }}/web:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ steps.ns.outputs.value }}/web:${{ inputs.environment }}
+
+      - name: Build & push migration
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.migration
+          push: true
+          tags: |
+            ghcr.io/${{ steps.ns.outputs.value }}/migration:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ steps.ns.outputs.value }}/migration:${{ inputs.environment }}
+
+  deploy:
+    name: Deploy
+    needs: build-push
+    runs-on: [self-hosted, deploy]
+    timeout-minutes: 15
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Copy compose file and script to the environment directory
+        run: |
+          mkdir -p "${{ inputs.env_dir }}"
+          cp deploy/docker-compose.yml deploy/deploy.sh "${{ inputs.env_dir }}/"
+          chmod +x "${{ inputs.env_dir }}/deploy.sh"
+
+      - name: Run deploy.sh
+        env:
+          IMAGE_TAG: ${{ needs.build-push.outputs.image_tag }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: "${{ inputs.env_dir }}/deploy.sh"
+
+      - name: Smoke test
+        run: |
+          for _ in 1 2 3 4 5; do
+            if curl -fsS "${{ vars.PUBLIC_URL }}/health"; then
+              echo "Health OK"; exit 0
+            fi
+            sleep 10
+          done
+          echo "Health check failed" >&2
+          exit 1
