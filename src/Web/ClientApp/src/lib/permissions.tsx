@@ -32,9 +32,7 @@ function evaluate(granted: ReadonlySet<string>, check: PermissionCheck): boolean
 }
 
 export function usePermissions() {
-  const { user, isLoading, isAuthenticated } = useSession();
-  // The mutator throws on non-2xx, so a resolved query is always UserInfoResponse.
-  const session = user as UserInfoResponse | undefined;
+  const { user: session, isLoading, isAuthenticated } = useSession();
   const granted = useMemo(
     () => new Set<string>(session?.permissions ?? []),
     [session?.permissions],

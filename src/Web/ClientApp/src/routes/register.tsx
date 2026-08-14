@@ -14,8 +14,10 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldError } from '@/components/field-error';
+import { FormErrorSummary } from '@/components/form-error-summary';
 import { useRegister } from '@/lib/auth';
-import { ApiError } from '@/api/mutator/custom-fetch';
+import { applyServerErrors } from '@/lib/form-server-errors';
 
 export const Route = createFileRoute('/register')({
   component: RegisterPage,
@@ -27,36 +29,23 @@ const fields = {
   password: z.string().min(6, 'Password must be at least 6 characters.'),
 };
 
-function firstError(errors: unknown[]): string | null {
-  const err = errors?.[0];
-  if (!err) return null;
-  if (typeof err === 'string') return err;
-  if (typeof err === 'object' && err !== null && 'message' in err) {
-    return String((err as { message: unknown }).message);
-  }
-  return String(err);
-}
-
 function RegisterPage() {
   const navigate = useNavigate();
   const register = useRegister();
-  const [serverError, setServerError] = useState('');
+  const [generalErrors, setGeneralErrors] = useState<string[]>([]);
 
   const form = useForm({
     defaultValues: { userName: '', email: '', password: '' },
     onSubmit: async ({ value }) => {
-      setServerError('');
+      setGeneralErrors([]);
       try {
         await register.mutateAsync({ data: value });
         toast.success('Account created. You can now log in.');
         navigate({ to: '/login' });
       } catch (e) {
-        if (e instanceof ApiError && e.problem?.errors) {
-          const messages = Object.values(e.problem.errors).flat();
-          setServerError(messages[0] ?? 'Registration failed.');
-        } else {
-          setServerError('Registration failed. Please try again.');
-        }
+        // Password-policy and uniqueness failures come back keyed by field, so they land under
+        // the input they concern; anything else is shown above the form.
+        setGeneralErrors(applyServerErrors(form, e, 'Registration failed. Please try again.'));
       }
     },
   });
@@ -77,6 +66,8 @@ function RegisterPage() {
               form.handleSubmit();
             }}
           >
+            <FormErrorSummary messages={generalErrors} />
+
             <form.Field name="userName" validators={{ onChange: fields.userName }}>
               {(field) => (
                 <div className="space-y-2">
@@ -89,11 +80,7 @@ function RegisterPage() {
                     onChange={(e) => field.handleChange(e.target.value)}
                     aria-invalid={field.state.meta.errors.length > 0 || undefined}
                   />
-                  {field.state.meta.isTouched && (
-                    <p className="text-destructive text-sm">
-                      {firstError(field.state.meta.errors)}
-                    </p>
-                  )}
+                  <FieldError meta={field.state.meta} />
                 </div>
               )}
             </form.Field>
@@ -111,11 +98,7 @@ function RegisterPage() {
                     onChange={(e) => field.handleChange(e.target.value)}
                     aria-invalid={field.state.meta.errors.length > 0 || undefined}
                   />
-                  {field.state.meta.isTouched && (
-                    <p className="text-destructive text-sm">
-                      {firstError(field.state.meta.errors)}
-                    </p>
-                  )}
+                  <FieldError meta={field.state.meta} />
                 </div>
               )}
             </form.Field>
@@ -133,20 +116,10 @@ function RegisterPage() {
                     onChange={(e) => field.handleChange(e.target.value)}
                     aria-invalid={field.state.meta.errors.length > 0 || undefined}
                   />
-                  {field.state.meta.isTouched && (
-                    <p className="text-destructive text-sm">
-                      {firstError(field.state.meta.errors)}
-                    </p>
-                  )}
+                  <FieldError meta={field.state.meta} />
                 </div>
               )}
             </form.Field>
-
-            {serverError && (
-              <p id="register-error" className="text-destructive text-sm" role="alert">
-                {serverError}
-              </p>
-            )}
 
             <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting]}>
               {([canSubmit, isSubmitting]) => (

@@ -50,6 +50,7 @@ public static class DependencyInjection
             options.AddOperationTransformer<IdentityApiOperationTransformer>();
             options.AddDocumentTransformer<PermissionsDocumentTransformer>();
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+            options.AddSchemaTransformer<NumericSchemaTransformer>();
         });
 
         // Anonymous endpoints (login, register, password reset, any public read surface) are

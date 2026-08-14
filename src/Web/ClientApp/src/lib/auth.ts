@@ -9,6 +9,8 @@ import {
   info,
 } from '@/api/generated/users/users';
 import type { QueryClient } from '@tanstack/react-query';
+import type { UserInfoResponse } from '@/api/generated/model';
+import { successData } from '@/lib/api';
 
 /**
  * Reactive session hook. The `info` endpoint returns 200 for an authenticated user and 401
@@ -17,7 +19,7 @@ import type { QueryClient } from '@tanstack/react-query';
 export function useSession() {
   const query = useInfo();
   return {
-    user: query.data?.data,
+    user: successData(query.data) as UserInfoResponse | undefined,
     isAuthenticated: query.isSuccess,
     isLoading: query.isLoading,
     query,
