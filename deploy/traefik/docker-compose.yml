@@ -1,8 +1,11 @@
 # Shared Traefik, deployed once per host. Listens on 80/443 and terminates TLS through
 # Let's Encrypt. Application stacks register themselves via Docker labels.
 #
+# The ca-shared-web network name carries no project name on purpose: every stack generated from
+# this template joins the same network so this one Traefik can route to all of them.
+#
 # First run, before any stack:
-#   docker network create cleanarchitecture_web
+#   docker network create ca-shared-web
 #   docker compose --env-file .env up -d
 
 name: traefik
@@ -31,12 +34,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - letsencrypt:/letsencrypt
     networks:
-      - cleanarchitecture_web
+      - ca-shared-web
 
 volumes:
   letsencrypt:
 
 networks:
-  cleanarchitecture_web:
-    name: cleanarchitecture_web
+  ca-shared-web:
+    name: ca-shared-web
     driver: bridge

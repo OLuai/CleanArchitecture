@@ -1,6 +1,8 @@
 using CleanArchitecture.Application.Common.Exceptions;
 using CleanArchitecture.Application.TodoLists.Commands.CreateTodoList;
-using NotFoundException = CleanArchitecture.Application.Common.Exceptions.NotFoundException;
+// The handler guards with Guard.Against.NotFound, which throws Ardalis's type, not the
+// application's. Both map to 404 in ProblemDetailsExceptionHandler.
+using NotFoundException = Ardalis.GuardClauses.NotFoundException;
 using CleanArchitecture.Application.TodoLists.Commands.UpdateTodoList;
 using CleanArchitecture.Domain.Entities;
 
@@ -36,8 +38,10 @@ public class UpdateTodoListTests : TestBase
 
         var ex = await Should.ThrowAsync<ValidationException>(() => TestApp.SendAsync(command));
 
-        ex.Errors.ShouldContainKey("Title");
-        ex.Errors["Title"].ShouldContain("'Title' must be unique.");
+        // ValidationException camel-cases property names so the keys match the JSON the client
+        // receives and can be attached to the right form field.
+        ex.Errors.ShouldContainKey("title");
+        ex.Errors["title"].ShouldContain("'Title' must be unique.");
     }
 
     [Test]

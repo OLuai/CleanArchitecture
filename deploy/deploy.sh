@@ -23,8 +23,8 @@ if [[ -n "${GHCR_TOKEN:-}" ]]; then
 fi
 
 # The shared Traefik network is created once per host, outside any stack.
-docker network inspect cleanarchitecture_web >/dev/null 2>&1 \
-  || docker network create cleanarchitecture_web
+docker network inspect ca-shared-web >/dev/null 2>&1 \
+  || docker network create ca-shared-web
 
 echo "==> Pulling images"
 "${COMPOSE[@]}" pull

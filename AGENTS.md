@@ -61,6 +61,13 @@ is referenced by Web, Infrastructure, AppHost, and test projects.
 ## Database
 
 - PostgreSQL, provisioned by Aspire (`AddPostgres` with a persistent container and pgAdmin)
+- **The container and pgAdmin are shared with every other solution generated from this
+  template** (`ca-shared-postgres` / `ca-shared-pgadmin`, ports 5431 / 5050, declared in
+  `Services.Shared`). Each solution owns its own database inside them. The password is the
+  machine-wide `CA_SHARED_PG_PWD`, not user secrets, because `dotnet new` renames the
+  `UserSecretsId` per project. Never name shared infrastructure after the project.
+- `tests/TestAppHost` starts its own unnamed, non-persistent container, so tests never touch
+  development data.
 - **EF Core migrations** under `src/Infrastructure/Migrations`, applied at startup by
   `src/Migration` (`MigrationWorker`), which then runs `IDbSeeder`
 - Connection string key: `ConnectionStrings:CleanArchitectureDb`

@@ -12,6 +12,7 @@ public static class TestApp
 {
     private static string? _userId;
     private static List<string>? _roles;
+    private static IReadOnlyCollection<string>? _permissions;
 
     public static async Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request)
     {
@@ -35,25 +36,49 @@ public static class TestApp
 
     public static List<string>? GetRoles() => _roles;
 
-    public static async Task<string> RunAsDefaultUserAsync()
+    public static IReadOnlyCollection<string>? GetPermissions() => _permissions;
+
+    /// <summary>
+    /// The user most tests run as: fully permitted, so a use-case test exercises the handler
+    /// rather than the authorization layer. Pass an explicit permission set to test authorization.
+    /// </summary>
+    public static Task<string> RunAsDefaultUserAsync()
+        => RunAsUserAsync("test@local", "Testing1234!", [], Permissions.All);
+
+    public static Task<string> RunAsAdministratorAsync()
+        => RunAsUserAsync("administrator@local", "Administrator1234!", [Roles.Administrator], Permissions.All);
+
+    /// <summary>Drops the current identity, so the next request is anonymous.</summary>
+    public static void RunAsAnonymous()
     {
-        return await RunAsUserAsync("test@local", "Testing1234!", []);
+        _userId = null;
+        _roles = null;
+        _permissions = null;
     }
 
-    public static async Task<string> RunAsAdministratorAsync()
-    {
-        return await RunAsUserAsync("administrator@local", "Administrator1234!", [Roles.Administrator]);
-    }
-
-    public static async Task<string> RunAsUserAsync(string userName, string password, string[] roles)
+    public static async Task<string> RunAsUserAsync(
+        string userName,
+        string password,
+        string[] roles,
+        IReadOnlyCollection<string>? permissions = null)
     {
         using var scope = FunctionalTestSetup.ScopeFactory.CreateScope();
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        var user = new ApplicationUser { UserName = userName, Email = userName };
+        // Idempotent: a test may switch to a user the per-test SetUp already created.
+        var user = await userManager.FindByNameAsync(userName);
+        if (user is null)
+        {
+            user = new ApplicationUser { UserName = userName, Email = userName };
 
-        var result = await userManager.CreateAsync(user, password);
+            var result = await userManager.CreateAsync(user, password);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(Environment.NewLine, result.ToApplicationResult().Errors);
+                throw new Exception($"Unable to create {userName}.{Environment.NewLine}{errors}");
+            }
+        }
 
         if (roles.Length > 0)
         {
@@ -61,22 +86,23 @@ public static class TestApp
 
             foreach (var role in roles)
             {
-                await roleManager.CreateAsync(new IdentityRole(role));
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+
+                if (!await userManager.IsInRoleAsync(user, role))
+                {
+                    await userManager.AddToRoleAsync(user, role);
+                }
             }
-
-            await userManager.AddToRolesAsync(user, roles);
         }
 
-        if (result.Succeeded)
-        {
-            _userId = user.Id;
-            _roles = [.. roles];
-            return _userId;
-        }
+        _userId = user.Id;
+        _roles = [.. roles];
+        _permissions = permissions is null ? [] : [.. permissions];
 
-        var errors = string.Join(Environment.NewLine, result.ToApplicationResult().Errors);
-
-        throw new Exception($"Unable to create {userName}.{Environment.NewLine}{errors}");
+        return _userId;
     }
 
     public static async Task ResetState()
@@ -86,8 +112,7 @@ public static class TestApp
             await FunctionalTestSetup.DbResetter.ResetAsync();
         }
 
-        _userId = null;
-        _roles = null;
+        RunAsAnonymous();
     }
 
     public static async Task<TEntity?> FindAsync<TEntity>(params object[] keyValues)

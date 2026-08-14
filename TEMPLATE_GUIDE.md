@@ -64,11 +64,9 @@ dotnet new ca-sln -o MyApi --client-framework None   # Web API only
 namespaces (`MyProject.Web`, `MyProject.Application`, …), assembly names, the `.slnx`, the
 database name (`CleanArchitectureDb` → `MyProjectDb`), etc.
 
-> **Note:** lowercase/UPPERCASE constants that are *not* PascalCase `CleanArchitecture`
-> (the Aspire container names `cleanarchitecture-postgres` / `-pg-data` / `-pgadmin`, the
-> Docker network `cleanarchitecture_web`, and the `CLEANARCHITECTURE_PG_PWD` env var used by the
-> EF scripts) are intentionally **not** renamed — they are machine-local conventions and stay
-> constant across projects. Rename them by hand only if you need per-project isolation.
+> **Note:** `dotnet new` rewrites **every case variant** of the source name, lowercase and
+> kebab-case included. Anything that must stay identical across projects therefore cannot be
+> named after `CleanArchitecture` — see *Shared local infrastructure* below.
 
 ### 3. Run it
 
@@ -82,6 +80,38 @@ The Aspire dashboard opens with Postgres, pgAdmin, the `migration` worker, the W
 (Scalar at `/scalar`) and — in React mode — the dev server.
 
 Sign in with the seeded administrator: `administrator@localhost` / `Administrator1!`.
+
+### Shared local infrastructure
+
+**Every solution generated from this template shares one PostgreSQL container and one pgAdmin**,
+each solution owning its own database inside them. That is why the container, volume and network
+names carry no project name — `dotnet new` would rename them, every project would start its own
+container, and they would all collide on the fixed host ports.
+
+| What | Fixed name | Host port |
+|------|-----------|-----------|
+| PostgreSQL container | `ca-shared-postgres` | `5431` |
+| Data volume | `ca-shared-pg-data` | — |
+| pgAdmin container | `ca-shared-pgadmin` | `5050` |
+| Traefik network (deployment) | `ca-shared-web` | — |
+
+They are declared once in `src/Shared/Services.cs` (`Services.Shared`) and used from
+`src/AppHost/Program.cs`. The database name (`Services.Database`) *is* renamed per project, which
+is what keeps the solutions isolated from one another inside the shared server.
+
+Because they share the container, they must all present the same password. Set it once per
+machine — not in user secrets, which `dotnet new` gives each project its own copy of:
+
+```powershell
+setx CA_SHARED_PG_PWD "<the password the container was created with>"
+```
+
+Reopen the shell afterwards. The AppHost and the `scripts/db` EF tooling both read it. Without
+the variable the AppHost falls back to a prompted Aspire parameter, which works for a single
+solution but means the first one to run decides the container's password for all the others.
+
+> The test fixtures are deliberately **not** shared: `tests/TestAppHost` starts an unnamed,
+> non-persistent PostgreSQL container so a test run can never touch development data.
 
 ### 4. Day-to-day: regenerate the API client
 
@@ -218,8 +248,10 @@ back to the renameable `CleanArchitecture` token family so `dotnet new` can re-r
 |----------------|----------------|
 | `Foo_bar` (PascalCase namespaces, assembly names) | `CleanArchitecture` |
 | `FooBarDb` (database name) | `CleanArchitectureDb` |
-| `foobar-*` / `foobar_*` (container, volume, network names) | `cleanarchitecture-*` / `cleanarchitecture_*` |
-| `FOOBAR_PG_PWD` (env var) | `CLEANARCHITECTURE_PG_PWD` |
+| `foobar-*` (per-project container/volume names) | `cleanarchitecture-*` |
+
+Shared-infrastructure names (`ca-shared-*`, `CA_SHARED_PG_PWD`) must be left alone — renaming
+them per project is exactly the bug they exist to prevent.
 
 ### How the two modes are enforced
 

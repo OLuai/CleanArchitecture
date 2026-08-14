@@ -61,7 +61,7 @@ services:
       - web
     labels:
       - traefik.enable=true
-      - traefik.docker.network=cleanarchitecture_web
+      - traefik.docker.network=ca-shared-web
       - traefik.http.routers.${STACK_NAME}-web.rule=Host(`${PUBLIC_HOST}`)
       - traefik.http.routers.${STACK_NAME}-web.entrypoints=websecure
       - traefik.http.routers.${STACK_NAME}-web.tls=true
@@ -77,5 +77,5 @@ networks:
     name: ${STACK_NAME}-internal
     driver: bridge
   web:
-    name: cleanarchitecture_web
+    name: ca-shared-web
     external: true

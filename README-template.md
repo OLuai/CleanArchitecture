@@ -32,54 +32,58 @@ The solution uses **Aspire-orchestrated PostgreSQL** with **EF Core Migrations**
 
 ### Aspire resources (declared in `src/AppHost`)
 
-| Resource    | Description                                                          | Host port |
-|-------------|---------------------------------------------------------------------|-----------|
-| `postgres`  | Generic Postgres container, persistent volume `cleanarchitecture-pg-data` | `5431` |
-| `pgadmin`   | pgAdmin UI for browsing the DB, persistent                          | `5050`    |
-| `migration` | Worker that applies migrations + seed, then exits                   | —         |
-| `webapi`    | Web API (waits for `migration` completion before starting)          | dynamic   |
+| Resource    | Description                                                              | Host port |
+|-------------|--------------------------------------------------------------------------|-----------|
+| `postgres`  | **Shared** Postgres container `ca-shared-postgres`, volume `ca-shared-pg-data` | `5431` |
+| `pgadmin`   | **Shared** pgAdmin UI `ca-shared-pgadmin`, persistent                    | `5050`    |
+| `migration` | Worker that applies migrations + seed, then exits                        | —         |
+| `webapi`    | Web API (waits for `migration` completion before starting)               | dynamic   |
 
-The Postgres password is provided to Aspire via a **parameter** so it is stable across runs.
+> **The PostgreSQL container and pgAdmin are shared with every other solution generated from this
+> template.** This solution owns its own database (`CleanArchitectureDb`) inside that shared
+> server; the container itself is reused rather than duplicated, which is why its name carries no
+> project name and why the host ports are fixed.
+>
+> The consequence: every such solution must present the **same** password, so it comes from a
+> machine-wide environment variable rather than from this project's user secrets.
 
 ### First-time setup
 
-1. **Set the Postgres password** in the AppHost user secrets (used by the Aspire `postgres-password` parameter):
+1. **Set the shared Postgres password** as a user environment variable. The AppHost and the EF
+   Core scripts both read it:
 
    ```powershell
-   dotnet user-secrets set Parameters:postgres-password "<choose-a-password>" --project src/AppHost
+   setx CA_SHARED_PG_PWD "<choose-a-password>"
    ```
 
-2. **Export the same password** as a user environment variable so the EF Core tooling scripts can connect to the dev container outside of Aspire:
+   Close and reopen the shell after `setx`. If the `ca-shared-postgres` container already exists
+   from another solution, use the password it was created with — PostgreSQL keeps the credentials
+   from its first initialisation.
 
-   ```powershell
-   setx CLEANARCHITECTURE_PG_PWD "<same-password>"
-   ```
-
-   Close and reopen the shell after `setx`.
-
-3. **Restore the local `dotnet-ef` tool** (manifest in `.config/dotnet-tools.json`):
+2. **Restore the local `dotnet-ef` tool** (manifest in `.config/dotnet-tools.json`):
 
    ```powershell
    dotnet tool restore
    ```
 
-4. **Start Aspire once** so the `postgres` container is created and the persistent volume initialized:
+3. **Start Aspire once** so the shared container and volume exist (or are picked up if another
+   solution already created them):
 
    ```powershell
    dotnet run --project ./src/AppHost
    ```
 
-5. **Create the initial migration** (the `DbContext` lives in `src/Infrastructure`):
+4. **Create the initial migration** (the `DbContext` lives in `src/Infrastructure`):
 
    ```powershell
    ./scripts/db/Add-Migration.ps1 Initial
    ```
 
-6. Restart Aspire. The `migration` worker applies pending migrations, runs the **DevelopmentSeeder** (roles + admin + sample TodoList) in dev or the **ProductionSeeder** (roles + admin only) elsewhere, then exits. `webapi` starts via `.WaitForCompletion(migration)`.
+5. Restart Aspire. The `migration` worker applies pending migrations, runs the **DevelopmentSeeder** (roles + admin + sample TodoList) in dev or the **ProductionSeeder** (roles + admin only) elsewhere, then exits. `webapi` starts via `.WaitForCompletion(migration)`.
 
 ### EF Core scripts (`scripts/db/`)
 
-The scripts wrap `dotnet ef` with the correct `--project src/Infrastructure --startup-project src/Migration` arguments and inject the connection string from `CLEANARCHITECTURE_PG_PWD`:
+The scripts wrap `dotnet ef` with the correct `--project src/Infrastructure --startup-project src/Migration` arguments and inject the connection string from `CA_SHARED_PG_PWD`:
 
 ```powershell
 ./scripts/db/Add-Migration.ps1 <Name>     # create a new migration
@@ -94,7 +98,7 @@ The scripts wrap `dotnet ef` with the correct `--project src/Infrastructure --st
 | `ProductionSeeder` (non-Development envs) |  ✅   |      ✅       |       ❌        |
 | `DevelopmentSeeder` (Development env)      |  ✅   |      ✅       |       ✅        |
 
-Both seeders are idempotent. The Postgres data volume `cleanarchitecture-pg-data` is persistent across Aspire restarts.
+Both seeders are idempotent. The data volume `ca-shared-pg-data` is persistent across Aspire restarts and shared with the other solutions generated from this template — dropping it wipes their databases too.
 
 ## API client generation (Orval, React mode)
 

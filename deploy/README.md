@@ -16,7 +16,7 @@ deploy/
 ## First-time host setup
 
 ```bash
-docker network create cleanarchitecture_web
+docker network create ca-shared-web
 
 cd deploy/traefik
 cp .env.example .env && ${EDITOR:-vi} .env    # set ACME_EMAIL
