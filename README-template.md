@@ -1,12 +1,16 @@
 # CleanArchitecture
 
-This project was generated from a personal [Clean Architecture Solution Template](caRepositoryUrl) — a modern React frontend on a .NET Aspire + PostgreSQL backend, built on Clean Architecture.
+This project was generated from a personal [Clean Architecture Solution Template](caRepositoryUrl) — a .NET Aspire + PostgreSQL backend built on Clean Architecture, with an optional React dashboard.
+
+> Sections marked **(React mode)** apply only if the solution was generated with the React
+> dashboard. In API-only mode there is no `src/Web/ClientApp` and no `tests/Web.AcceptanceTests`.
 
 ## Stack
 
 - **Backend**: ASP.NET Core (.NET 10), Clean Architecture, MediatR, FluentValidation, EF Core (PostgreSQL), native OpenAPI + [Scalar](https://scalar.com/).
 - **Orchestration**: [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) (`src/AppHost`) — Postgres + pgAdmin containers, a `Migration` worker, the Web API, and the React dev server.
-- **Frontend** (`src/Web/ClientApp`): React 19, [Vite](https://vite.dev/), [TanStack](https://tanstack.com/) Router/Query/Form/Table, [shadcn/ui](https://ui.shadcn.com/) (Radix + Tailwind v4), [Orval](https://orval.dev/) (typed TanStack Query hooks generated from the OpenAPI document).
+- **Auth**: ASP.NET Identity with permission-based RBAC. Browsers use the application cookie; other clients obtain a bearer token from `POST /api/Users/identity/login?useCookies=false`. A policy scheme picks per request, so endpoints never care which was used.
+- **Frontend (React mode)** (`src/Web/ClientApp`): React 19, [Vite](https://vite.dev/), [TanStack](https://tanstack.com/) Router/Query/Form/Table, [shadcn/ui](https://ui.shadcn.com/) (Radix + Tailwind v4), [Orval](https://orval.dev/) (typed TanStack Query hooks generated from the OpenAPI document). Ships as a dashboard: sidebar shell, user and role administration, account page.
 
 ## Build
 
@@ -18,7 +22,9 @@ Run `dotnet build` to build the solution.
 dotnet run --project ./src/AppHost
 ```
 
-The Aspire dashboard opens automatically, showing the application URLs and logs. The React app, the Web API (with Scalar at `/scalar`), Postgres, pgAdmin and the `migration` worker all appear as resources.
+The Aspire dashboard opens automatically, showing the application URLs and logs. The Web API (with Scalar at `/scalar`), Postgres, pgAdmin, the `migration` worker — and, in React mode, the dev server — all appear as resources.
+
+Sign in with the seeded administrator: **`administrator@localhost`** / **`Administrator1!`**. Change this before deploying anywhere.
 
 ## Database (PostgreSQL, EF Core Migrations)
 
@@ -90,7 +96,7 @@ The scripts wrap `dotnet ef` with the correct `--project src/Infrastructure --st
 
 Both seeders are idempotent. The Postgres data volume `cleanarchitecture-pg-data` is persistent across Aspire restarts.
 
-## API client generation (Orval)
+## API client generation (Orval, React mode)
 
 The Web API emits an OpenAPI document to `src/Web/wwwroot/openapi/v1.json` on build. The frontend regenerates its typed client + TanStack Query hooks from it:
 
@@ -100,6 +106,25 @@ npm run generate-api
 ```
 
 `npm start` and `npm run build` run this automatically (via the `prestart` / `prebuild` hooks). Every exception is translated to an [RFC 9110 ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9110) body by `ProblemDetailsExceptionHandler`; the custom fetch mutator (`src/Web/ClientApp/src/api/mutator/custom-fetch.ts`) surfaces those typed errors as an `ApiError` to the UI.
+
+## Authorization
+
+Permissions live in `src/Domain/Constants/Permissions.cs` and are stored as **role claims**: a
+user's effective permissions are the union of their roles'. To add one:
+
+1. Add the constant to `Permissions.cs`.
+2. Grant it to the relevant roles in `src/Migration/Seed/RolePermissionMap.cs`. The seeder both
+   grants and **revokes**, so removing a line takes the permission away on the next deployment.
+   Administrator always receives the whole catalogue.
+3. Protect the endpoint with `.RequireAuthorization($"Permission:{Permissions.Area.Action}")`,
+   and/or the MediatR request with `[Authorize(Permissions = Permissions.Area.Action)]`.
+
+The catalogue is published into the OpenAPI document, so the frontend's `Permission` enum is
+generated rather than maintained by hand — gate UI with `<Can permission={...}>` and routes with
+`ensurePermission(...)`.
+
+Roles and per-user role assignment are managed from **/admin/roles** and **/admin/users** in the
+dashboard. Changing them refreshes the affected users' sessions within five minutes.
 
 ## Code Scaffolding
 
@@ -117,3 +142,11 @@ The solution contains unit, integration, functional, and acceptance tests. Funct
 ```bash
 dotnet test
 ```
+
+## Deployment
+
+`deploy/` holds a self-hosted deployment: a Docker Compose stack (PostgreSQL, the migration job,
+the web app) published through a shared Traefik that terminates TLS. `deploy/.env.example`
+documents every configuration value the stack needs, and `deploy/README.md` covers first-time
+host setup. `.github/workflows/_deploy.yml` is a reusable workflow that builds and pushes both
+images and runs the deployment.

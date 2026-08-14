@@ -9,13 +9,16 @@ modernized to a single fixed stack. It is the base for all my new projects.
 | Area | Choice |
 |------|--------|
 | Frontend | React 19 · Vite · TanStack Router/Query/Form/Table · shadcn/ui (Radix) · Tailwind v4 · [Orval](https://orval.dev/) |
+| Dashboard | Sidebar shell · stats home · **user & role administration** · account page |
 | API docs | Native `Microsoft.AspNetCore.OpenApi` + [Scalar](https://scalar.com/) |
 | Backend | ASP.NET Core (.NET 10) · MediatR · FluentValidation · `IEndpointGroup` endpoints · RFC 9110 ProblemDetails · permissions/RBAC |
+| Auth | ASP.NET Identity — cookie for browsers, bearer for other clients, selected per request |
 | Data | PostgreSQL + EF Core · dedicated `Migration` worker (migrate + seed at startup) |
 | Orchestration | .NET Aspire (`src/AppHost`) — Postgres · pgAdmin · Migration · Web API · React dev server |
 | Tests | `tests/TestAppHost` real-PostgreSQL fixtures (Respawn) |
+| Deployment | `deploy/` — Docker Compose behind Traefik, plus a reusable GitHub Actions workflow |
 
-Angular, the old React app, SQLite, SQL Server, API-only and the non-Aspire paths from the base
+Angular, the old React app, SQLite, SQL Server and the non-Aspire and azd paths from the base
 template have been removed.
 
 ## Quick start
@@ -25,7 +28,8 @@ template have been removed.
 dotnet new install .
 
 # Create a new project (CleanArchitecture → MyProject everywhere)
-dotnet new ca-sln -o MyProject
+dotnet new ca-sln -o MyProject                       # React dashboard
+dotnet new ca-sln -o MyApi --client-framework None   # Web API only
 ```
 
 Then follow the generated project's `README.md` for first-time Postgres setup and

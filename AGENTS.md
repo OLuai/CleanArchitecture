@@ -1,62 +1,107 @@
 # CleanArchitecture
 
-Clean Architecture solution on .NET 10 with .NET Aspire orchestration and a React/Vite SPA frontend.
+Clean Architecture solution on .NET 10 with .NET Aspire orchestration and an optional React/Vite
+dashboard. This repository is also a `dotnet new` template — see `TEMPLATE_GUIDE.md`.
 
 ## Commands
 
 - **Build:** `dotnet build`
 - **Run:** `dotnet run --project .\src\AppHost` (opens Aspire dashboard)
-- **Test (all):** `dotnet test`
+- **Test (all):** `dotnet test` — functional and acceptance tests need a container runtime
 - **Test (single project):** `dotnet test .\tests\Domain.UnitTests`
-- **Scaffold use case:** `dotnet new ca-usecase --name CreateFoo --feature-name Foos --usecase-type command --return-type int` (run from `src\Application`; install with `dotnet new install Clean.Architecture.Solution.Template::10.8.0` if missing)
+- **Scaffold use case:** `dotnet new ca-usecase --name CreateFoo --feature-name Foos --usecase-type command --return-type int` (run from `src\Application`; omit `--return-type` for a void command)
 - **Generate TypeScript API client:** `npm run generate-api` (from `src\Web\ClientApp`)
 - **Frontend dev:** `npm start` (from `src\Web\ClientApp`; auto-runs `generate-api` via prestart hook)
+- **EF migrations:** `.\scripts\db\Add-Migration.ps1 -Name Foo`, `.\scripts\db\Update-Database.ps1`
+- **Template smoke test:** `.\build\test.ps1` (generates, builds and tests both client modes)
 
 ## Architecture
 
 ```
 src/AppHost          → Aspire orchestration entry point (run this to start)
-src/Web              → ASP.NET Core API + serves SPA from ClientApp/
+src/Web              → ASP.NET Core API + serves the SPA from ClientApp/
 src/Application      → MediatR commands/queries, FluentValidation, AutoMapper
 src/Domain           → Entities, value objects, domain events (no external deps)
 src/Infrastructure   → EF Core (PostgreSQL/Npgsql), ASP.NET Identity
+src/Migration        → Worker that applies migrations and seeds, then exits
 src/ServiceDefaults  → Aspire shared service configuration
 src/Shared           → Constants (service names, DB name)
+deploy/              → Docker Compose + Traefik deployment, and its Dockerfiles
 ```
 
-Dependency flow: Web → Application → Domain, Web → Infrastructure → Application → Domain. Shared is referenced by Web, Infrastructure, AppHost, and test projects.
+Dependency flow: Web → Application → Domain, Web → Infrastructure → Application → Domain. Shared
+is referenced by Web, Infrastructure, AppHost, and test projects.
 
 ## Frontend
 
-- React 19 + Vite 8 + TypeScript (`.tsx`)
-- **Tailwind CSS v4** (`@tailwindcss/vite`) + **shadcn/ui** components (`src/components/ui`, config in `components.json`, `cn` helper in `src/lib/utils.ts`)
-- **TanStack Router** (file-based, routes in `src/routes`, generated `src/routeTree.gen.ts`), **TanStack Query**, **TanStack Form**, **TanStack Table**
-- **Orval** generates a typed client + TanStack Query hooks from `src/Web/wwwroot/openapi/v1.json` into `src/Web/ClientApp/src/api/generated` (config: `orval.config.ts`). A custom fetch mutator (`src/api/mutator/custom-fetch.ts`) forces `credentials: 'include'` for cookie auth and throws an `ApiError` carrying the ProblemDetails body on non-2xx.
-- Vite proxies `/api`, `/openapi`, `/scalar`, and weather forecast routes to the backend via Aspire service discovery env vars
-- Regenerate the client with `npm run generate-api` (runs Orval); also runs automatically on `npm start`/`npm run build` via the `prestart`/`prebuild` hooks
-- Auth: cookie-based ASP.NET Identity. Hooks in `src/lib/auth.ts` (`useSession`/`useLogin`/`useRegister`/`useLogout`); protected routes guard via `beforeLoad` + `ensureAuthenticated`. Login accepts username **or** email.
+- React 19 + Vite + TypeScript (`.tsx`)
+- **Tailwind CSS v4** (`@tailwindcss/vite`) + **shadcn/ui** (`src/components/ui`, config in
+  `components.json`, `cn` helper in `src/lib/utils.ts`). Primitives come from the unified
+  `radix-ui` package.
+- **TanStack Router** (file-based, routes in `src/routes`, generated `src/routeTree.gen.ts`),
+  **TanStack Query**, **TanStack Form**, **TanStack Table**
+- **Orval** generates a typed client + TanStack Query hooks from `src/Web/wwwroot/openapi/v1.json`
+  into `src/Web/ClientApp/src/api/generated` (config: `orval.config.ts`). A custom fetch mutator
+  (`src/api/mutator/custom-fetch.ts`) forces `credentials: 'include'`, throws `ApiError` carrying
+  the ProblemDetails body on non-2xx, throws `NetworkError` when there is no response at all, and
+  returns binary payloads as `Blob`.
+- Orval types each response as a union over every documented status; `successData()` from
+  `src/lib/api.ts` narrows it to the success branch.
+- Vite proxies `/api`, `/openapi`, `/scalar` and the weather routes to the backend using Aspire
+  service-discovery env vars
+- **Shell:** `src/routes/__root.tsx` renders a sidebar layout (`app-sidebar`, `page-breadcrumb`,
+  `user-menu`); `/login` and `/register` render bare. Sidebar entries come from
+  `src/lib/navigation.tsx`.
+- **Auth:** cookie-based ASP.NET Identity. Hooks in `src/lib/auth.ts`
+  (`useSession`/`useLogin`/`useRegister`/`useLogout`); protected routes guard via `beforeLoad` +
+  `ensureAuthenticated` or `ensurePermission`. Login accepts username **or** email.
+- **Server errors in forms:** `applyServerErrors(form, error)` routes per-field validation errors
+  onto their inputs and returns the rest for `<FormErrorSummary>`.
 
 ## Database
 
-- PostgreSQL, provisioned by Aspire (containerized locally via `AddAzurePostgresFlexibleServer` → `RunAsContainer`)
-- **No EF Core migrations.** Uses `EnsureDeletedAsync()` + `EnsureCreatedAsync()` on startup in development — the DB is recreated every run
+- PostgreSQL, provisioned by Aspire (`AddPostgres` with a persistent container and pgAdmin)
+- **EF Core migrations** under `src/Infrastructure/Migrations`, applied at startup by
+  `src/Migration` (`MigrationWorker`), which then runs `IDbSeeder`
 - Connection string key: `ConnectionStrings:CleanArchitectureDb`
-- The production AppHost also provisions Azure Container Apps (`AddAzureContainerAppEnvironment`)
+- Data Protection keys are persisted to the database, so auth cookies survive redeploys
+- `f_unaccent` + `pg_trgm` are created by migration for accent-insensitive search
+
+## Authorization
+
+- Permissions are declared in `src/Domain/Constants/Permissions.cs` and stored as **role claims**;
+  a user's effective permissions are the union of their roles'.
+- `src/Migration/Seed/RolePermissionMap.cs` is the desired state: the seeder grants *and* revokes.
+  Administrator always receives the whole catalogue.
+- Endpoints use `.RequireAuthorization($"Permission:{...}")`, resolved dynamically by
+  `PermissionAuthorizationPolicyProvider`. MediatR requests use `[Authorize(Permissions = ...)]`,
+  enforced by `AuthorizationBehaviour`.
+- `PermissionsDocumentTransformer` publishes the catalogue into the OpenAPI document, so the
+  frontend's `Permission` enum is generated rather than maintained by hand.
+- Changing roles or role permissions bumps the affected users' security stamps; the cookie
+  revalidates every 5 minutes.
+- Deactivating a user means locking them out until `DateTimeOffset.MaxValue`, not deleting them.
 
 ## Testing
 
 - **Framework:** NUnit (not xUnit), Shouldly for assertions, Moq for mocking
-- **Functional tests** (`Application.FunctionalTests`): spin up a full Aspire `DistributedApplication` via `TestAppHost` with a real PostgreSQL container; use `Respawn` to reset DB between tests
-- **Acceptance tests** (`Web.AcceptanceTests`): Playwright + Reqnroll (Gherkin `.feature` files); also spin up Aspire; headless when not debugging, slow-mo when attached
+- **Functional tests** (`Application.FunctionalTests`): spin up a full Aspire
+  `DistributedApplication` via `TestAppHost` with a real PostgreSQL container; use `Respawn` to
+  reset the DB between tests
+- **Acceptance tests** (`Web.AcceptanceTests`): Playwright + Reqnroll (Gherkin `.feature` files);
+  also spin up Aspire; headless when not debugging, slow-mo when attached
 - **Integration tests** (`Infrastructure.IntegrationTests`): currently empty project
-- Functional and acceptance tests require Docker (for PostgreSQL containers)
+- Functional and acceptance tests require Docker
 
 ## Conventions
 
-- Root namespace: `CleanArchitecture` (with underscore)
+- Root namespace: `CleanArchitecture`
 - C# file-scoped namespaces
 - Private fields: `_camelCase`; private static fields: `s_camelCase`
 - `TreatWarningsAsErrors` is enabled (`NU1608` suppressed)
 - Central package versions in `Directory.Packages.props`
-- Build output in `artifacts/` (not default `obj/`)
+- Build output in `artifacts/` (not the default `obj/`)
 - Test service names defined in `src/Shared/Services.cs` constants
+- Comments explain *why*, in English; user-facing strings may be French
+- `#if (!UseApiOnly)` directives are template conditionals — see `TEMPLATE_GUIDE.md` section C
+  before touching them
