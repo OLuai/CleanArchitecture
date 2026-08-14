@@ -3,7 +3,19 @@ using FluentValidation.Results;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using CleanArchitecture.Application.Common.Models;
+using CleanArchitecture.Application.Users;
+using CleanArchitecture.Application.Users.Commands.CreateUser;
+using CleanArchitecture.Application.Users.Commands.DeleteUser;
+using CleanArchitecture.Application.Users.Commands.SetUserActive;
+using CleanArchitecture.Application.Users.Commands.SetUserPassword;
+using CleanArchitecture.Application.Users.Commands.SetUserRoles;
+using CleanArchitecture.Application.Users.Commands.UpdateUser;
+using CleanArchitecture.Application.Users.Queries.GetUser;
+using CleanArchitecture.Application.Users.Queries.GetUsers;
 using CleanArchitecture.Infrastructure.Identity;
+using CleanArchitecture.Web.Infrastructure;
+using DomainPermissions = CleanArchitecture.Domain.Constants.Permissions;
 using ValidationException = CleanArchitecture.Application.Common.Exceptions.ValidationException;
 
 namespace CleanArchitecture.Web.Endpoints;
@@ -17,10 +29,30 @@ public class Users : IEndpointGroup
         // The canonical login/register paths are reserved for the custom endpoints below.
         groupBuilder.MapGroup("identity").MapIdentityApi<ApplicationUser>();
 
-        groupBuilder.MapPost(Register, "register");
-        groupBuilder.MapPost(Login, "login");
+        // Anonymous endpoints are rate limited per IP: without it, login is an open
+        // password-guessing oracle and register an unbounded account-creation endpoint.
+        groupBuilder.MapPost(Register, "register").RequireRateLimiting(RateLimitPolicies.Public);
+        groupBuilder.MapPost(Login, "login").RequireRateLimiting(RateLimitPolicies.Public);
         groupBuilder.MapGet(Info, "info").RequireAuthorization();
         groupBuilder.MapPost(Logout, "logout").RequireAuthorization();
+
+        // --- Administration ---
+        groupBuilder.MapGet(GetUsers)
+            .RequireAuthorization($"Permission:{DomainPermissions.Users.View}");
+        groupBuilder.MapGet(GetUser, "{id}")
+            .RequireAuthorization($"Permission:{DomainPermissions.Users.View}");
+        groupBuilder.MapPost(CreateUser)
+            .RequireAuthorization($"Permission:{DomainPermissions.Users.Create}");
+        groupBuilder.MapPut(UpdateUser, "{id}")
+            .RequireAuthorization($"Permission:{DomainPermissions.Users.Update}");
+        groupBuilder.MapPut(SetUserRoles, "{id}/roles")
+            .RequireAuthorization($"Permission:{DomainPermissions.Users.ManageRoles}");
+        groupBuilder.MapPut(SetUserPassword, "{id}/password")
+            .RequireAuthorization($"Permission:{DomainPermissions.Users.Update}");
+        groupBuilder.MapPut(SetUserActive, "{id}/active")
+            .RequireAuthorization($"Permission:{DomainPermissions.Users.Update}");
+        groupBuilder.MapDelete(DeleteUser, "{id}")
+            .RequireAuthorization($"Permission:{DomainPermissions.Users.Delete}");
     }
 
     [EndpointSummary("Register")]
@@ -65,6 +97,13 @@ public class Users : IEndpointGroup
         var result = await signInManager.PasswordSignInAsync(
             user, request.Password, isPersistent: false, lockoutOnFailure: true);
 
+        // A deactivated account is locked out until DateTimeOffset.MaxValue, so say so rather
+        // than letting the user retry a password that is in fact correct.
+        if (result.IsLockedOut)
+        {
+            throw new UnauthorizedAccessException("This account is locked. Contact an administrator.");
+        }
+
         if (!result.Succeeded)
         {
             throw new UnauthorizedAccessException("Invalid login or password.");
@@ -86,13 +125,21 @@ public class Users : IEndpointGroup
         }
 
         var permissions = claimsPrincipal
-            .FindAll(CleanArchitecture.Domain.Constants.Permissions.ClaimType)
+            .FindAll(DomainPermissions.ClaimType)
             .Select(c => c.Value)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToArray();
 
-        return TypedResults.Ok(new UserInfoResponse(user.Id, user.UserName, user.Email, permissions));
+        var roles = claimsPrincipal
+            .FindAll(ClaimTypes.Role)
+            .Select(c => c.Value)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(r => r, StringComparer.Ordinal)
+            .ToArray();
+
+        return TypedResults.Ok(
+            new UserInfoResponse(user.Id, user.UserName, user.Email, user.DisplayName, roles, permissions));
     }
 
     [EndpointSummary("Log out")]
@@ -106,6 +153,68 @@ public class Users : IEndpointGroup
         }
 
         return TypedResults.Unauthorized();
+    }
+
+    // --- Administration ---
+
+    [EndpointSummary("List users")]
+    [EndpointDescription("Paginated user list. The search term matches user name, email or display name, ignoring case and accents.")]
+    public static async Task<Ok<PaginatedList<UserDto>>> GetUsers(ISender sender, [AsParameters] GetUsersQuery query)
+        => TypedResults.Ok(await sender.Send(query));
+
+    [EndpointSummary("Get a user")]
+    public static async Task<Ok<UserDto>> GetUser(ISender sender, string id)
+        => TypedResults.Ok(await sender.Send(new GetUserQuery(id)));
+
+    [EndpointSummary("Create a user")]
+    public static async Task<Created<string>> CreateUser(ISender sender, [FromBody] CreateUserCommand command)
+    {
+        var id = await sender.Send(command);
+
+        return TypedResults.Created($"/api/Users/{id}", id);
+    }
+
+    [EndpointSummary("Update a user")]
+    public static async Task<NoContent> UpdateUser(ISender sender, string id, [FromBody] UpdateUserCommand command)
+    {
+        await sender.Send(command with { UserId = id });
+
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Set a user's roles")]
+    [EndpointDescription("Replaces the user's roles. Their session is refreshed so the new permissions take effect.")]
+    public static async Task<NoContent> SetUserRoles(ISender sender, string id, [FromBody] SetUserRolesCommand command)
+    {
+        await sender.Send(command with { UserId = id });
+
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Reset a user's password")]
+    [EndpointDescription("Administrative reset: sets a new password without requiring the current one.")]
+    public static async Task<NoContent> SetUserPassword(ISender sender, string id, [FromBody] SetUserPasswordCommand command)
+    {
+        await sender.Send(command with { UserId = id });
+
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Activate or deactivate a user")]
+    [EndpointDescription("Deactivating locks the account out indefinitely rather than deleting it.")]
+    public static async Task<NoContent> SetUserActive(ISender sender, string id, [FromBody] SetUserActiveRequest request)
+    {
+        await sender.Send(new SetUserActiveCommand(id, request.IsActive));
+
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Delete a user")]
+    public static async Task<NoContent> DeleteUser(ISender sender, string id)
+    {
+        await sender.Send(new DeleteUserCommand(id));
+
+        return TypedResults.NoContent();
     }
 
     // Maps ASP.NET Identity error codes onto the request property they relate to, so the client
@@ -129,4 +238,12 @@ public record RegisterUserRequest(string UserName, string Email, string Password
 
 public record LoginUserRequest(string Login, string Password);
 
-public record UserInfoResponse(string UserId, string? UserName, string? Email, IReadOnlyList<string> Permissions);
+public record SetUserActiveRequest(bool IsActive);
+
+public record UserInfoResponse(
+    string UserId,
+    string? UserName,
+    string? Email,
+    string? DisplayName,
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> Permissions);

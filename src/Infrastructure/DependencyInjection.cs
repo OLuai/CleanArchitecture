@@ -70,6 +70,12 @@ public static class DependencyInjection
         builder.Services.AddDataProtection()
             .PersistKeysToDbContext<ApplicationDbContext>();
 
+        // Permissions are carried as claims inside the auth cookie, so a role change only reaches
+        // an open session when the cookie is revalidated. Five minutes bounds how long a user can
+        // keep permissions that have just been revoked (the default is 30).
+        builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+            options.ValidationInterval = TimeSpan.FromMinutes(5));
+
         builder.Services.AddAuthorizationBuilder();
         builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
 

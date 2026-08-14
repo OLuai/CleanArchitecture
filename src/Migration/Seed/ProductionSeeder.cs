@@ -33,43 +33,56 @@ public class ProductionSeeder : IDbSeeder
 
     private async Task SeedRolesAsync()
     {
-        var adminRole = await _roleManager.FindByNameAsync(Roles.Administrator);
-        if (adminRole is null)
+        foreach (var roleName in Roles.All)
         {
-            _logger.LogInformation("Creating role {Role}", Roles.Administrator);
-            adminRole = new IdentityRole(Roles.Administrator);
-            var create = await _roleManager.CreateAsync(adminRole);
-            if (!create.Succeeded)
+            var role = await _roleManager.FindByNameAsync(roleName);
+            if (role is null)
+            {
+                _logger.LogInformation("Creating role {Role}", roleName);
+                role = new IdentityRole(roleName);
+                var create = await _roleManager.CreateAsync(role);
+                if (!create.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to create role {roleName}: {Describe(create)}");
+                }
+            }
+
+            await SyncPermissionsAsync(role, RolePermissionMap.For(roleName));
+        }
+    }
+
+    /// <summary>
+    /// Brings the role's permission claims in line with <paramref name="desired"/>, in both
+    /// directions. Granting alone would leave a permission in place forever once it was removed
+    /// from the map or renamed in the catalogue.
+    /// </summary>
+    private async Task SyncPermissionsAsync(IdentityRole role, IReadOnlyList<string> desired)
+    {
+        var existing = await _roleManager.GetClaimsAsync(role);
+        var current = existing.Where(c => c.Type == Permissions.ClaimType).ToArray();
+        var target = desired.ToHashSet(StringComparer.Ordinal);
+
+        foreach (var stale in current.Where(c => !target.Contains(c.Value)))
+        {
+            _logger.LogInformation("Revoking permission {Permission} from role {Role}", stale.Value, role.Name);
+            var removed = await _roleManager.RemoveClaimAsync(role, stale);
+            if (!removed.Succeeded)
             {
                 throw new InvalidOperationException(
-                    $"Failed to create role {Roles.Administrator}: {string.Join(", ", create.Errors.Select(e => e.Description))}");
+                    $"Failed to revoke permission {stale.Value} from {role.Name}: {Describe(removed)}");
             }
         }
 
-        await SyncAdministratorPermissionsAsync(adminRole);
-    }
-
-    private async Task SyncAdministratorPermissionsAsync(IdentityRole adminRole)
-    {
-        var existing = await _roleManager.GetClaimsAsync(adminRole);
-        var alreadyGranted = existing
-            .Where(c => c.Type == Permissions.ClaimType)
-            .Select(c => c.Value)
-            .ToHashSet(StringComparer.Ordinal);
-
-        foreach (var permission in Permissions.All)
+        var granted = current.Select(c => c.Value).ToHashSet(StringComparer.Ordinal);
+        foreach (var permission in target.Where(p => !granted.Contains(p)))
         {
-            if (alreadyGranted.Contains(permission))
-            {
-                continue;
-            }
-
-            _logger.LogInformation("Granting permission {Permission} to role {Role}", permission, Roles.Administrator);
-            var result = await _roleManager.AddClaimAsync(adminRole, new Claim(Permissions.ClaimType, permission));
-            if (!result.Succeeded)
+            _logger.LogInformation("Granting permission {Permission} to role {Role}", permission, role.Name);
+            var added = await _roleManager.AddClaimAsync(role, new Claim(Permissions.ClaimType, permission));
+            if (!added.Succeeded)
             {
                 throw new InvalidOperationException(
-                    $"Failed to grant permission {permission} to {Roles.Administrator}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                    $"Failed to grant permission {permission} to {role.Name}: {Describe(added)}");
             }
         }
     }
@@ -86,16 +99,20 @@ public class ProductionSeeder : IDbSeeder
         var administrator = new ApplicationUser
         {
             UserName = DefaultAdminUserName,
-            Email = DefaultAdminUserName
+            Email = DefaultAdminUserName,
+            DisplayName = "Administrator"
         };
 
         var create = await _userManager.CreateAsync(administrator, DefaultAdminPassword);
         if (!create.Succeeded)
         {
             throw new InvalidOperationException(
-                $"Failed to create default administrator: {string.Join(", ", create.Errors.Select(e => e.Description))}");
+                $"Failed to create default administrator: {Describe(create)}");
         }
 
         await _userManager.AddToRoleAsync(administrator, Roles.Administrator);
     }
+
+    private static string Describe(IdentityResult result) =>
+        string.Join(", ", result.Errors.Select(e => e.Description));
 }
