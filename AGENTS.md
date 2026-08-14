@@ -96,7 +96,8 @@ is referenced by Web, Infrastructure, AppHost, and test projects.
   `DistributedApplication` via `TestAppHost` with a real PostgreSQL container; use `Respawn` to
   reset the DB between tests
 - **Acceptance tests** (`Web.AcceptanceTests`): Playwright + Reqnroll (Gherkin `.feature` files);
-  also spin up Aspire; headless when not debugging, slow-mo when attached
+  start the **real** AppHost, so they use the shared PostgreSQL container and need
+  `CA_SHARED_PG_PWD` set; headless when not debugging, slow-mo when attached
 - **Integration tests** (`Infrastructure.IntegrationTests`): currently empty project
 - Functional and acceptance tests require Docker
 

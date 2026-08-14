@@ -110,8 +110,11 @@ Reopen the shell afterwards. The AppHost and the `scripts/db` EF tooling both re
 the variable the AppHost falls back to a prompted Aspire parameter, which works for a single
 solution but means the first one to run decides the container's password for all the others.
 
-> The test fixtures are deliberately **not** shared: `tests/TestAppHost` starts an unnamed,
-> non-persistent PostgreSQL container so a test run can never touch development data.
+> The functional-test fixtures are deliberately **not** shared: `tests/TestAppHost` starts an
+> unnamed, non-persistent PostgreSQL container so a test run can never touch development data.
+> The **acceptance** tests are different — they start the real AppHost, so they use the shared
+> container and require `CA_SHARED_PG_PWD`. They fail immediately with that message when it is
+> unset, rather than waiting for a resource that can never become healthy.
 
 ### 4. Day-to-day: regenerate the API client
 

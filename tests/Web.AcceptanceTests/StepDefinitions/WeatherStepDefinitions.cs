@@ -14,13 +14,13 @@ public sealed class WeatherStepDefinitions(WeatherPage weatherPage)
         await loginPage.SetLogin("administrator@localhost");
         await loginPage.SetPassword("Administrator1!");
         await loginPage.ClickLogin();
-        await Assertions.Expect(page.Locator("button:has-text('Log out')")).ToBeVisibleAsync();
+        await loginPage.AssertSignedIn();
 
         container.RegisterInstanceAs(context);
         container.RegisterInstanceAs(new WeatherPage(page));
     }
 
-    [AfterFeature]
+    [AfterFeature("Weather")]
     public static async Task AfterWeatherFeature(IObjectContainer container)
     {
         var context = container.Resolve<IBrowserContext>();

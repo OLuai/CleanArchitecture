@@ -141,7 +141,15 @@ dotnet new ca-usecase -n GetTodos -fn TodoLists -ut query -rt TodosVm
 
 ## Test
 
-The solution contains unit, integration, functional, and acceptance tests. Functional and acceptance tests spin up a real PostgreSQL container via `tests/TestAppHost` (Aspire) and reset state with Respawn.
+The solution contains unit, integration, functional, and acceptance tests.
+
+Functional tests spin up their own throwaway PostgreSQL container via `tests/TestAppHost` (Aspire), apply the migrations and reset state between tests with Respawn — they never touch your development data.
+
+Acceptance tests start the **real** AppHost, so they use the shared PostgreSQL container and require `CA_SHARED_PG_PWD`. They also need the Playwright browsers:
+
+```powershell
+pwsh artifacts/bin/Web.AcceptanceTests/release/playwright.ps1 install chromium
+```
 
 ```bash
 dotnet test

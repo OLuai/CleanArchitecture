@@ -12,7 +12,7 @@ public sealed class CounterStepDefinitions(CounterPage counterPage)
         container.RegisterInstanceAs(new CounterPage(page));
     }
 
-    [AfterFeature]
+    [AfterFeature("Counter")]
     public static async Task AfterCounterFeature(IObjectContainer container)
     {
         var context = container.Resolve<IBrowserContext>();

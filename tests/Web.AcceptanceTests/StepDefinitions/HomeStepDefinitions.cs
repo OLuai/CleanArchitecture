@@ -12,7 +12,7 @@ public sealed class HomeStepDefinitions(HomePage homePage)
         container.RegisterInstanceAs(new HomePage(page));
     }
 
-    [AfterFeature]
+    [AfterFeature("Home")]
     public static async Task AfterHomeFeature(IObjectContainer container)
     {
         var context = container.Resolve<IBrowserContext>();
