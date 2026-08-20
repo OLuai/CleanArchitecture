@@ -33,9 +33,14 @@ var postgres = builder
         .WithLifetime(ContainerLifetime.Persistent))
     .AddDatabase(Services.Database);
 
+// The environment must be forwarded explicitly: this worker is a Host.CreateApplicationBuilder
+// host, so it reads DOTNET_ENVIRONMENT, not ASPNETCORE_ENVIRONMENT. Without it the worker runs in
+// Production even during local development, which picks the ProductionSeeder and skips the sample
+// data — and turns off the DI validation that would have caught a broken service graph.
 var migration = builder.AddProject<Projects.Migration>(Services.Migration)
     .WithReference(postgres)
-    .WaitFor(postgres);
+    .WaitFor(postgres)
+    .WithHostEnvironment();
 
 // Configuration is injected here rather than duplicated across appsettings.<Environment>.json:
 // Aspire owns the topology, so it also owns the values that describe it. Use the double
@@ -58,7 +63,7 @@ var web = builder.AddProject<Projects.Web>(Services.WebApi)
     .WithReference(postgres)
     .WaitForCompletion(migration)
     .WithExternalHttpEndpoints()
-    .WithAspNetCoreEnvironment()
+    .WithHostEnvironment()
     .WithUrlForEndpoint("http", url =>
     {
         url.DisplayText = "Scalar API Reference";

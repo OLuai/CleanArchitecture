@@ -45,13 +45,31 @@ public sealed class StringIdGenerationInterceptor : SaveChangesInterceptor
             var type = entity.GetType();
 
             if (!IsStringKeyedBaseEntity(type)) continue;
-            if (!_registry.TryGet(type, out var registration)) continue;
 
             var idProperty = entry.Property(nameof(BaseEntity<string>.Id));
-            if (idProperty.CurrentValue is string current && !string.IsNullOrEmpty(current)) continue;
+
+            // TemporaryStringIdValueGenerator put a placeholder here so EF could track the entity.
+            // It is a non-empty string, so the temporary flag — not emptiness — is what separates
+            // "EF filled this in" from "the caller chose this id", which is left untouched.
+            var needsId = idProperty.IsTemporary
+                || idProperty.CurrentValue is not string current
+                || string.IsNullOrEmpty(current);
+
+            if (!needsId) continue;
+
+            if (!_registry.TryGet(type, out var registration))
+            {
+                throw new InvalidOperationException(
+                    $"Entity '{type.FullName}' has a generated string key but no radical is registered. " +
+                    $"Call services.RegisterStringId<{type.Name}>(\"...\") in Infrastructure's DependencyInjection.");
+            }
 
             var newId = await _generator.NextAsync(registration, cancellationToken).ConfigureAwait(false);
             idProperty.CurrentValue = newId;
+
+            // Leaving the flag set would make EF treat the column as store-generated: it would
+            // omit it from the INSERT and wait for a value the database never sends back.
+            idProperty.IsTemporary = false;
         }
     }
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using CleanArchitecture.Application.Common.Interfaces;
@@ -21,6 +22,14 @@ builder.Services.AddScoped<IUser, SystemUser>();
 builder.AddApplicationServices();
 
 builder.AddInfrastructureServices();
+
+// Infrastructure wires the ASP.NET Core authorization stack (IIdentityService and every MediatR
+// handler behind it need IAuthorizationService), and that stack registers AuthorizationPolicyCache,
+// a singleton that watches EndpointDataSource to evict cached policies when the endpoint table
+// changes. Only a web host registers a source; this worker has no endpoints, so an empty one
+// completes the graph. Without it builder.Build() throws — but only in Development, where the
+// host turns on ValidateOnBuild.
+builder.Services.AddSingleton<EndpointDataSource>(new CompositeEndpointDataSource([]));
 
 if (builder.Environment.IsDevelopment())
 {
