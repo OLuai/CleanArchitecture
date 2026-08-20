@@ -60,6 +60,13 @@ The solution uses **Aspire-orchestrated PostgreSQL** with **EF Core Migrations**
    from another solution, use the password it was created with — PostgreSQL keeps the credentials
    from its first initialisation.
 
+   An existing container also keeps the **host port** it was created with, which may not be the
+   `5431` above. The EF Core scripts read the real one from Docker; to see it yourself:
+
+   ```powershell
+   docker ps --filter name=^ca-shared-postgres$ --format "{{.Ports}}"
+   ```
+
 2. **Restore the local `dotnet-ef` tool** (manifest in `.config/dotnet-tools.json`):
 
    ```powershell

@@ -95,6 +95,14 @@ container, and they would all collide on the fixed host ports.
 | pgAdmin container | `ca-shared-pgadmin` | `5050` |
 | Traefik network (deployment) | `ca-shared-web` | — |
 
+The host ports are what Aspire asks for, not a guarantee. The container is persistent and reused
+by name, and Docker keeps the mapping a container was created with: one that predates the fixed
+port — or comes from an older revision of this template — stays on the random port it was given.
+Read the real port from Docker (`docker ps --filter name=^ca-shared-postgres$`) when reaching the
+container from outside Aspire; `scripts/db/_common.ps1` does exactly that, and warns when the two
+disagree. Recreating the container moves it to the fixed port, and the `ca-shared-pg-data` volume
+keeps every database.
+
 They are declared once in `src/Shared/Services.cs` (`Services.Shared`) and used from
 `src/AppHost/Program.cs`. The database name (`Services.Database`) *is* renamed per project, which
 is what keeps the solutions isolated from one another inside the shared server.

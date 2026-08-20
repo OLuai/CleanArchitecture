@@ -66,6 +66,10 @@ is referenced by Web, Infrastructure, AppHost, and test projects.
   `Services.Shared`). Each solution owns its own database inside them. The password is the
   machine-wide `CA_SHARED_PG_PWD`, not user secrets, because `dotnet new` renames the
   `UserSecretsId` per project. Never name shared infrastructure after the project.
+- Those ports are what Aspire *asks* for. A persistent container is reused by name and keeps the
+  mapping it was created with, so one created before the fixed port was declared stays on a random
+  one. `scripts/db/_common.ps1` reads the published port from Docker rather than assuming it; do
+  the same anywhere else the container has to be reached from outside Aspire.
 - `tests/TestAppHost` starts its own unnamed, non-persistent container, so tests never touch
   development data.
 - **EF Core migrations** under `src/Infrastructure/Migrations`, applied at startup by
