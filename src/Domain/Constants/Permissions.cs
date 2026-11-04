@@ -48,6 +48,18 @@ public static class Permissions
         public const string View = "WeatherForecasts.View";
     }
 
+    public static class Settings
+    {
+        /// <summary>
+        /// View and change the outgoing email settings.
+        /// <para>
+        /// They hold an SMTP relay user name and password, and whoever holds this permission can
+        /// send messages under the application's address. Keep it to administrators.
+        /// </para>
+        /// </summary>
+        public const string ManageEmail = "Settings.ManageEmail";
+    }
+
     public const string ClaimType = "permission";
 
     public static IReadOnlyList<string> All { get; } = typeof(Permissions)

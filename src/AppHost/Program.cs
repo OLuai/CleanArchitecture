@@ -35,7 +35,11 @@ var postgres = builder
 
 var migration = builder.AddProject<Projects.Migration>(Services.Migration)
     .WithReference(postgres)
-    .WaitFor(postgres);
+    .WaitFor(postgres)
+    // Migration is a worker: Host.CreateApplicationBuilder resolves its environment from
+    // DOTNET_ENVIRONMENT, but Aspire only forwards ASPNETCORE_ENVIRONMENT to child projects.
+    // Without this the worker always came up as Production, so DevelopmentSeeder never ran.
+    .WithEnvironment("DOTNET_ENVIRONMENT", builder.Environment.EnvironmentName);
 
 // Configuration is injected here rather than duplicated across appsettings.<Environment>.json:
 // Aspire owns the topology, so it also owns the values that describe it. Use the double
@@ -67,6 +71,27 @@ var web = builder.AddProject<Projects.Web>(Services.WebApi)
 
 if (builder.ExecutionContext.IsRunMode)
 {
+    // Development mailbox: receives everything the application sends and shows it on its web UI,
+    // linked from the dashboard. Passed to the Web as Smtp__* configuration, so /admin/email always
+    // has an environment source on a development machine; a row saved from that screen overrides
+    // it, exactly as in production. Fixed host ports so a test plan can name the address. In
+    // publish mode none of this: the deployment brings its own relay.
+    var mailpit = builder.AddMailPit(Services.Mailpit,
+            httpPort: Services.MailpitHttpHostPort,
+            smtpPort: Services.MailpitSmtpHostPort)
+        .WithUrlForEndpoint("http", url => url.DisplayText = "Mailpit");
+
+    var smtp = mailpit.GetEndpoint("smtp");
+
+    // Mailpit does not offer STARTTLS and SmtpEmailSender never negotiates it, so without "None"
+    // the connection would fail. The value is the literal name of Domain's SmtpSecurity, which the
+    // AppHost does not reference.
+    web.WithEnvironment("Smtp__Host", ReferenceExpression.Create($"{smtp.Property(EndpointProperty.Host)}"))
+        .WithEnvironment("Smtp__Port", ReferenceExpression.Create($"{smtp.Property(EndpointProperty.Port)}"))
+        .WithEnvironment("Smtp__Security", "None")
+        .WithEnvironment("Smtp__FromAddress", "noreply@cleanarchitecture.test")
+        .WaitFor(mailpit);
+
     builder.AddJavaScriptApp(Services.WebFrontend, "./../Web/ClientApp")
         .WithRunScript("start")
         .WithReference(web)

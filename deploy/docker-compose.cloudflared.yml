@@ -1,0 +1,23 @@
+# Override for a host reached through a Cloudflare Tunnel instead of Traefik: nothing is published,
+# no port is opened on the router, the public IP may change. cloudflared keeps an outbound
+# connection to Cloudflare, which terminates TLS for PUBLIC_HOST and forwards to web:8080 on the
+# internal network. The public hostname -> service mapping lives in the Cloudflare dashboard
+# (Zero Trust > Networks > Tunnels), with the token below. The Traefik labels of
+# docker-compose.yml stay inert without a Traefik.
+#
+# Usage:  docker compose --env-file .env -f docker-compose.yml -f docker-compose.cloudflared.yml up -d
+#         (or COMPOSE_EXTRA_FILES=docker-compose.cloudflared.yml COMPOSE_EXTRA_SERVICES=cloudflared ./deploy.sh)
+services:
+  cloudflared:
+    # Date-based tags only, so no stable major to pin; --no-autoupdate keeps the running binary
+    # at the pulled version until the next deployment.
+    image: cloudflare/cloudflared:latest
+    container_name: ${STACK_NAME}-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      - web
+    networks:
+      - internal

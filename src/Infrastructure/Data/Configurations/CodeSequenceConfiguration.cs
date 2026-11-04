@@ -1,14 +1,14 @@
-using CleanArchitecture.Infrastructure.IdGeneration;
+using CleanArchitecture.Infrastructure.Codification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CleanArchitecture.Infrastructure.Data.Configurations;
 
-public class IdSequenceConfiguration : IEntityTypeConfiguration<IdSequence>
+public class CodeSequenceConfiguration : IEntityTypeConfiguration<CodeSequence>
 {
-    public void Configure(EntityTypeBuilder<IdSequence> builder)
+    public void Configure(EntityTypeBuilder<CodeSequence> builder)
     {
-        builder.ToTable("IdSequences");
+        builder.ToTable("CodeSequences");
 
         builder.HasKey(s => s.Radical);
 

@@ -34,8 +34,8 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PaginatedList
                 Search = request.Search,
                 Role = request.Role,
                 IsActive = request.IsActive,
-                PageNumber = request.PageNumber,
-                PageSize = request.PageSize,
+                PageNumber = request.Page,
+                PageSize = request.Size,
                 SortBy = request.SortBy,
                 SortDescending = request.SortDescending
             },

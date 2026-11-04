@@ -1,0 +1,17 @@
+# Build context for deploy/Dockerfile.*: sources only. A local checkout carries node_modules,
+# build output and the artifacts/ tree, which would slow every build and bloat the context.
+.git
+.github
+.vs
+.claude
+artifacts/
+**/bin/
+**/obj/
+**/node_modules/
+src/Web/ClientApp/build/
+src/Web/ClientApp/.tanstack/
+src/Web/wwwroot/openapi/
+tests/
+docs/
+deploy/
+*.md

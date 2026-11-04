@@ -5,8 +5,8 @@ namespace CleanArchitecture.Web.AcceptanceTests;
 [SetUpFixture]
 public class AspireSetup
 {
-    // Starting the real AppHost is not cheap: PostgreSQL and pgAdmin containers (pulled on a
-    // cold machine), the migration worker, the API, then the Vite dev server, which runs
+    // Starting the real AppHost is not cheap: PostgreSQL, pgAdmin and Mailpit containers (pulled
+    // on a cold machine), the migration worker, the API, then the Vite dev server, which runs
     // npm install and regenerates the API client before it reports healthy.
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
 

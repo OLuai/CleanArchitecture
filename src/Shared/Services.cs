@@ -44,6 +44,21 @@ public static class Services
     public const string PostgresPasswordParameter = "postgres-password";
 
     /// <summary>
+    /// The name of the Mailpit resource: the development mailbox that receives everything the
+    /// application sends and shows it on a web UI. Run mode only; a deployment brings its own relay.
+    /// </summary>
+    public const string Mailpit = "mailpit";
+
+    /// <summary>
+    /// Fixed host ports for Mailpit, so a test plan can name <c>http://localhost:8025</c>. Not
+    /// under <see cref="Shared"/>: this container is not pooled between solutions, it is as
+    /// disposable as the messages it holds.
+    /// </summary>
+    public const int MailpitSmtpHostPort = 1025;
+
+    public const int MailpitHttpHostPort = 8025;
+
+    /// <summary>
     /// Names of the shared local development containers.
     /// <para>
     /// Deliberately free of the project name: every solution generated from this template targets

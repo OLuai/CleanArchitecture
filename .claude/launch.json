@@ -1,0 +1,32 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "clientapp",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5173"
+      ],
+      "cwd": "src/Web/ClientApp",
+      "env": {
+        "services__webapi__https__0": "https://localhost:7088"
+      },
+      "port": 5173
+    },
+    {
+      "name": "apphost",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "src/AppHost",
+        "--launch-profile",
+        "https"
+      ],
+      "url": "https://cleanarchitecture.dev.localhost:17245",
+      "port": 17245
+    }
+  ]
+}

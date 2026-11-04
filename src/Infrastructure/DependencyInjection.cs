@@ -2,8 +2,9 @@ using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Application.Common.Security;
 using CleanArchitecture.Infrastructure.Data;
 using CleanArchitecture.Infrastructure.Data.Interceptors;
+using CleanArchitecture.Infrastructure.Email;
 using CleanArchitecture.Infrastructure.Identity;
-using CleanArchitecture.Infrastructure.IdGeneration;
+using CleanArchitecture.Infrastructure.Codification;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
@@ -12,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -22,14 +24,16 @@ public static class DependencyInjection
         var connectionString = builder.Configuration.GetConnectionString(Services.Database);
         Guard.Against.Null(connectionString, message: $"Connection string '{Services.Database}' not found.");
 
-        // Ids and codes are assigned first so that the domain events dispatched below can use them.
-        builder.Services.AddScoped<ISaveChangesInterceptor, StringIdGenerationInterceptor>();
-        builder.Services.AddScoped<ISaveChangesInterceptor, EntityCodeGenerationInterceptor>();
+        // Codes are assigned first so that the domain events dispatched below can use them.
+        builder.Services.AddScoped<ISaveChangesInterceptor, CodeGenerationInterceptor>();
         builder.Services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
         builder.Services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
 
-        builder.Services.AddSingleton<EntityCodeRegistry>();
-        builder.Services.AddSingleton<EntityCodeGenerator>();
+        builder.Services.AddSingleton<CodeRegistry>();
+        builder.Services.AddSingleton<HiLoCodeGenerator>();
+
+        // Business codes beside the GUID keys, e.g. builder.Services.RegisterCode<Project>("PRJ")
+        // for PRJ-000123: what a person reads, dictates over the phone and quotes in a ticket.
 
         builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
@@ -105,5 +109,21 @@ public static class DependencyInjection
 
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddTransient<IIdentityService, IdentityService>();
+
+        // Outgoing mail. Settings come from configuration (Smtp__* variables) and are overridden by
+        // the EmailSettings row once an administrator has saved one from /admin/email.
+        builder.Services.AddOptions<SmtpOptions>()
+            .Bind(builder.Configuration.GetSection(SmtpOptions.Section));
+
+        builder.Services.AddSingleton<IEmailConfiguration>(sp =>
+            sp.GetRequiredService<IOptions<SmtpOptions>>().Value);
+
+        builder.Services.AddScoped<ISecretProtector, DataProtectionSecretProtector>();
+        builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+        // Routes Identity's own messages (confirmation, password reset) through the same relay.
+        // Without this, AddApiEndpoints keeps a sender that does nothing.
+        builder.Services.AddSingleton<
+            Microsoft.AspNetCore.Identity.IEmailSender<ApplicationUser>, IdentityEmailSender>();
     }
 }

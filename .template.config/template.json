@@ -83,6 +83,20 @@
           "include": [
             ".github/**/*"
           ]
+        },
+        {
+          "condition": "true",
+          "exclude": [
+            ".github/FUNDING.yml",
+            ".github/icon.png",
+            ".github/ISSUE_TEMPLATE/**/*",
+            ".github/workflows/jekyll-gh-pages.yml",
+            ".github/workflows/package.yml",
+            ".github/workflows/release.yml",
+            ".github/workflows/test-templates.yml",
+            "build/repack.ps1",
+            "build/test.ps1"
+          ]
         }
       ]
     }

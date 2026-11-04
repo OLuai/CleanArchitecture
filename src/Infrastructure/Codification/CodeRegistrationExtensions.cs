@@ -1,11 +1,17 @@
 using CleanArchitecture.Domain.Common;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CleanArchitecture.Infrastructure.IdGeneration;
+namespace CleanArchitecture.Infrastructure.Codification;
 
-public static class EntityCodeRegistrationExtensions
+public static class CodeRegistrationExtensions
 {
-    public static IServiceCollection RegisterEntityCode<TEntity>(
+    /// <summary>
+    /// Declares that <typeparamref name="TEntity"/> carries a business code built from
+    /// <paramref name="radical"/>: <c>RegisterCode&lt;Project&gt;("PRJ")</c> yields
+    /// <c>PRJ-000123</c>. The entity's primary key stays a <see cref="Guid"/>; only the code is
+    /// sequential.
+    /// </summary>
+    public static IServiceCollection RegisterCode<TEntity>(
         this IServiceCollection services,
         string radical,
         int padLength = 6,
@@ -20,7 +26,7 @@ public static class EntityCodeRegistrationExtensions
         if (hiLoBlockSize < 1)
             throw new ArgumentOutOfRangeException(nameof(hiLoBlockSize), "Block size must be >= 1.");
 
-        services.AddSingleton(new EntityCodeRegistration(
+        services.AddSingleton(new CodeRegistration(
             EntityType: typeof(TEntity),
             Radical: radical,
             PadLength: padLength,

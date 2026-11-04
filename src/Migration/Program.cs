@@ -3,6 +3,7 @@ using CleanArchitecture.Migration;
 using CleanArchitecture.Migration.Seed;
 using CleanArchitecture.Migration.Workers;
 using CleanArchitecture.Shared;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -21,6 +22,13 @@ builder.Services.AddScoped<IUser, SystemUser>();
 builder.AddApplicationServices();
 
 builder.AddInfrastructureServices();
+
+// Infrastructure registers the authorization stack for the API, and AuthorizationPolicyCache
+// takes a dependency on EndpointDataSource — a routing service only a web host provides. This
+// worker never authorizes anything, but DI validation (on in Development) walks every descriptor,
+// so it needs the dependency to exist. An empty data source satisfies it without pretending the
+// worker has endpoints.
+builder.Services.AddSingleton<EndpointDataSource>(new DefaultEndpointDataSource());
 
 if (builder.Environment.IsDevelopment())
 {

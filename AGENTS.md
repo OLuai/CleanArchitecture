@@ -73,6 +73,29 @@ is referenced by Web, Infrastructure, AppHost, and test projects.
 - Connection string key: `ConnectionStrings:CleanArchitectureDb`
 - Data Protection keys are persisted to the database, so auth cookies survive redeploys
 - `f_unaccent` + `pg_trgm` are created by migration for accent-insensitive search
+- **Keys are GUIDs; readable references are a separate `Code`.** Two different jobs, so two
+  different fields:
+  - Entities deriving from `BaseEntity<Guid>` get an `Id` generated in the application as
+    **UUID v7** (`SequentialGuidValueGenerator`, applied by convention in `ApplicationDbContext`).
+    v7 embeds a timestamp, so successive keys sort together and inserts stay at the edge of the
+    index. Generated client-side, so an entity has its identity from construction.
+  - `Code` (`PRJ-000123`) is what a human reads, dictates over the phone and quotes in a ticket.
+    Implement `IHasCode` and declare the radical with `RegisterCode<T>("PRJ")` in
+    `Infrastructure/DependencyInjection.cs`; `CodeGenerationInterceptor` fills it in at
+    SaveChanges from a HiLo block held in `CodeSequences`. Unique index by convention; gaps are
+    expected (a reserved block is consumed even if the transaction rolls back), so codes are
+    references, never a count.
+  - Routes and commands take the `Id`. The `Code` is displayed, searchable and quotable.
+
+## Email
+
+- `IEmailSender` (`SmtpEmailSender`, MailKit) sends through the relay configured by `Smtp__*`,
+  overridden by the `EmailSettings` row an administrator saves from `/admin/email`
+  (`Settings.ManageEmail`). The saved password is encrypted with Data Protection. Identity's own
+  messages (confirmation, password reset) go through the same relay (`IdentityEmailSender`).
+- **In run mode the AppHost starts Mailpit and points `Smtp__*` at it** (`localhost:1025`, no
+  TLS), so on a development machine every message is readable on the dashboard's **Mailpit** link
+  (`:8025`). Nothing of this exists in publish mode: a deployment brings its own relay.
 
 ## Authorization
 

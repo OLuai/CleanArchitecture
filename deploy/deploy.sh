@@ -4,6 +4,8 @@
 #
 #   ./deploy.sh                 # uses ./.env
 #   ./deploy.sh .env.prod       # uses another env file
+#   IMAGE_TAG=abc1234 SKIP_PULL=1 COMPOSE_EXTRA_FILES=docker-compose.cloudflared.yml COMPOSE_EXTRA_SERVICES=cloudflared ./deploy.sh
+#                               # images loaded locally, exposed through a Cloudflare Tunnel (Deploy-Preprod.ps1)
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -16,6 +18,12 @@ fi
 
 COMPOSE=(docker compose --env-file "$ENV_FILE" -f docker-compose.yml)
 
+# Extra compose files layered on top, space-separated: COMPOSE_EXTRA_FILES=docker-compose.cloudflared.yml
+# adds the tunnel instead of Traefik. Not in .env: compose does not read -f from it.
+for extra in ${COMPOSE_EXTRA_FILES:-}; do
+  COMPOSE+=(-f "$extra")
+done
+
 # Compose interpolation gives shell variables precedence over the env file, so CI can override
 # IMAGE_TAG with the commit SHA without rewriting .env.
 if [[ -n "${GHCR_TOKEN:-}" ]]; then
@@ -26,8 +34,25 @@ fi
 docker network inspect ca-shared-web >/dev/null 2>&1 \
   || docker network create ca-shared-web
 
-echo "==> Pulling images"
-"${COMPOSE[@]}" pull
+# SKIP_PULL=1 when the images were loaded by hand (docker load): they exist in no registry.
+if [[ "${SKIP_PULL:-0}" != "1" ]]; then
+  echo "==> Pulling images"
+  "${COMPOSE[@]}" pull
+fi
+
+# COMPOSE_EXTRA_SERVICES names what an override adds next to web (cloudflared). Their images come
+# from a registry even when the app images were loaded by hand, and a home connection drops a
+# pull now and then: retry before giving up, rather than after the migration has run.
+if [[ -n "${COMPOSE_EXTRA_SERVICES:-}" ]]; then
+  echo "==> Pulling ${COMPOSE_EXTRA_SERVICES}"
+  for attempt in 1 2 3; do
+    # shellcheck disable=SC2086
+    if "${COMPOSE[@]}" pull ${COMPOSE_EXTRA_SERVICES}; then break; fi
+    if [[ $attempt -eq 3 ]]; then echo "Could not pull ${COMPOSE_EXTRA_SERVICES}." >&2; exit 1; fi
+    echo "Pull failed, retrying in 10 s (attempt $attempt/3)" >&2
+    sleep 10
+  done
+fi
 
 echo "==> Starting database"
 "${COMPOSE[@]}" up -d postgres
@@ -38,7 +63,10 @@ echo "==> Applying migrations"
 "${COMPOSE[@]}" up --no-deps --abort-on-container-exit --exit-code-from migration migration
 
 echo "==> Starting web"
-"${COMPOSE[@]}" up -d web
+# Started here with web, not with a bare `up -d`, which would also restart the completed
+# migration container.
+# shellcheck disable=SC2086
+"${COMPOSE[@]}" up -d web ${COMPOSE_EXTRA_SERVICES:-}
 
 echo "==> Waiting for health"
 for _ in $(seq 1 30); do

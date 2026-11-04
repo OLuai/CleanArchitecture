@@ -4,6 +4,7 @@ import {
   Hash,
   LayoutDashboard,
   ListTodo,
+  Mail,
   ShieldCheck,
   Users,
 } from 'lucide-react';
@@ -43,6 +44,12 @@ export const navigation: NavGroup[] = [
     items: [
       { title: 'Users', to: '/admin/users', icon: Users, permission: Permission.UsersView },
       { title: 'Roles', to: '/admin/roles', icon: ShieldCheck, permission: Permission.RolesView },
+      {
+        title: 'Email',
+        to: '/admin/email',
+        icon: Mail,
+        permission: Permission.SettingsManageEmail,
+      },
     ],
   },
 ];
