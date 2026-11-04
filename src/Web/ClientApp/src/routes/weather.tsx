@@ -1,9 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { type ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDownIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { DataTable } from '@/components/data-table';
+import { DataTable, type DataTableColumnDef } from '@/components/data-table';
 import { ensureAuthenticated } from '@/lib/auth';
 import { useGetWeatherForecasts } from '@/api/generated/weather-forecasts/weather-forecasts';
 import type { WeatherForecast } from '@/api/generated/model';
@@ -19,7 +18,7 @@ export const Route = createFileRoute('/weather')({
   component: WeatherPage,
 });
 
-const columns: ColumnDef<WeatherForecast>[] = [
+const columns: DataTableColumnDef<WeatherForecast>[] = [
   {
     accessorKey: 'date',
     header: ({ column }) => (
@@ -45,10 +44,13 @@ const columns: ColumnDef<WeatherForecast>[] = [
   { accessorKey: 'summary', header: 'Summary' },
 ];
 
+// Stable fallback: a new [] on each render would rebuild the table's row models.
+const noForecasts: WeatherForecast[] = [];
+
 function WeatherPage() {
   const { data, isLoading, isError } = useGetWeatherForecasts();
   // The mutator throws on non-2xx, so a resolved query is always the success payload.
-  const forecasts = (data?.data ?? []) as WeatherForecast[];
+  const forecasts = (data?.data ?? noForecasts) as WeatherForecast[];
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
