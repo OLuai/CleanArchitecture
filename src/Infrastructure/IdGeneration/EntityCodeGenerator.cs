@@ -5,21 +5,21 @@ using CleanArchitecture.Infrastructure.Data;
 
 namespace CleanArchitecture.Infrastructure.IdGeneration;
 
-public sealed class StringHiLoIdGenerator
+public sealed class EntityCodeGenerator
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly StringIdRegistry _registry;
+    private readonly EntityCodeRegistry _registry;
 
     private readonly ConcurrentDictionary<string, HiLoState> _states = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
-    public StringHiLoIdGenerator(IServiceScopeFactory scopeFactory, StringIdRegistry registry)
+    public EntityCodeGenerator(IServiceScopeFactory scopeFactory, EntityCodeRegistry registry)
     {
         _scopeFactory = scopeFactory;
         _registry = registry;
     }
 
-    public async Task<string> NextAsync(StringIdRegistration registration, CancellationToken cancellationToken = default)
+    public async Task<string> NextAsync(EntityCodeRegistration registration, CancellationToken cancellationToken = default)
     {
         var gate = _locks.GetOrAdd(registration.Radical, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -41,7 +41,7 @@ public sealed class StringHiLoIdGenerator
         }
     }
 
-    private async Task<long> ReserveBlockAsync(StringIdRegistration registration, CancellationToken cancellationToken)
+    private async Task<long> ReserveBlockAsync(EntityCodeRegistration registration, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -63,7 +63,7 @@ public sealed class StringHiLoIdGenerator
         return newHigh;
     }
 
-    private static string Format(StringIdRegistration registration, long value)
+    private static string Format(EntityCodeRegistration registration, long value)
     {
         var formatted = value.ToString("D" + registration.PadLength);
         return string.Concat(registration.Radical, registration.Separator, formatted);

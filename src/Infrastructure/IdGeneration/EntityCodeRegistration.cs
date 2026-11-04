@@ -1,6 +1,6 @@
 namespace CleanArchitecture.Infrastructure.IdGeneration;
 
-public sealed record StringIdRegistration(
+public sealed record EntityCodeRegistration(
     Type EntityType,
     string Radical,
     int PadLength = 6,

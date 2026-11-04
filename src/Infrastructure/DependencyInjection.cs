@@ -20,12 +20,14 @@ public static class DependencyInjection
         var connectionString = builder.Configuration.GetConnectionString(Services.Database);
         Guard.Against.Null(connectionString, message: $"Connection string '{Services.Database}' not found.");
 
+        // Ids and codes are assigned first so that the domain events dispatched below can use them.
+        builder.Services.AddScoped<ISaveChangesInterceptor, StringIdGenerationInterceptor>();
+        builder.Services.AddScoped<ISaveChangesInterceptor, EntityCodeGenerationInterceptor>();
         builder.Services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
         builder.Services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
-        builder.Services.AddScoped<ISaveChangesInterceptor, StringIdGenerationInterceptor>();
 
-        builder.Services.AddSingleton<StringIdRegistry>();
-        builder.Services.AddSingleton<StringHiLoIdGenerator>();
+        builder.Services.AddSingleton<EntityCodeRegistry>();
+        builder.Services.AddSingleton<EntityCodeGenerator>();
 
         builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {

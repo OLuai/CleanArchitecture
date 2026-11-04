@@ -5,59 +5,48 @@ using CleanArchitecture.Domain.Common;
 
 namespace CleanArchitecture.Infrastructure.IdGeneration;
 
+/// <summary>
+/// Assigns a GUID to string-keyed entities (BaseEntity&lt;string&gt;) that are added without an Id,
+/// in the same format as ASP.NET Core Identity user Ids.
+/// </summary>
 public sealed class StringIdGenerationInterceptor : SaveChangesInterceptor
 {
-    private static readonly ConcurrentDictionary<Type, bool> _isStringEntityCache = new();
-
-    private readonly StringIdRegistry _registry;
-    private readonly StringHiLoIdGenerator _generator;
-
-    public StringIdGenerationInterceptor(StringIdRegistry registry, StringHiLoIdGenerator generator)
-    {
-        _registry = registry;
-        _generator = generator;
-    }
+    private static readonly ConcurrentDictionary<Type, bool> s_isStringEntityCache = new();
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
-        AssignIdsAsync(eventData.Context, CancellationToken.None).GetAwaiter().GetResult();
+        AssignIds(eventData.Context);
         return base.SavingChanges(eventData, result);
     }
 
-    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
+    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
     {
-        await AssignIdsAsync(eventData.Context, cancellationToken).ConfigureAwait(false);
-        return await base.SavingChangesAsync(eventData, result, cancellationToken).ConfigureAwait(false);
+        AssignIds(eventData.Context);
+        return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
-    private async Task AssignIdsAsync(DbContext? context, CancellationToken cancellationToken)
+    private static void AssignIds(DbContext? context)
     {
         if (context is null) return;
 
         foreach (var entry in context.ChangeTracker.Entries())
         {
             if (entry.State != EntityState.Added) continue;
-
-            var entity = entry.Entity;
-            var type = entity.GetType();
-
-            if (!IsStringKeyedBaseEntity(type)) continue;
-            if (!_registry.TryGet(type, out var registration)) continue;
+            if (!IsStringKeyedBaseEntity(entry.Entity.GetType())) continue;
 
             var idProperty = entry.Property(nameof(BaseEntity<string>.Id));
             if (idProperty.CurrentValue is string current && !string.IsNullOrEmpty(current)) continue;
 
-            var newId = await _generator.NextAsync(registration, cancellationToken).ConfigureAwait(false);
-            idProperty.CurrentValue = newId;
+            idProperty.CurrentValue = Guid.NewGuid().ToString();
         }
     }
 
     private static bool IsStringKeyedBaseEntity(Type type)
     {
-        return _isStringEntityCache.GetOrAdd(type, static t =>
+        return s_isStringEntityCache.GetOrAdd(type, static t =>
         {
             var current = t;
             while (current is not null && current != typeof(object))

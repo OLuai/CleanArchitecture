@@ -3,15 +3,15 @@ using CleanArchitecture.Domain.Common;
 
 namespace CleanArchitecture.Infrastructure.IdGeneration;
 
-public static class StringIdRegistrationExtensions
+public static class EntityCodeRegistrationExtensions
 {
-    public static IServiceCollection RegisterStringId<TEntity>(
+    public static IServiceCollection RegisterEntityCode<TEntity>(
         this IServiceCollection services,
         string radical,
         int padLength = 6,
         string separator = "-",
         int hiLoBlockSize = 50)
-        where TEntity : BaseEntity<string>
+        where TEntity : class, IHasCode
     {
         if (string.IsNullOrWhiteSpace(radical))
             throw new ArgumentException("Radical cannot be empty.", nameof(radical));
@@ -20,7 +20,7 @@ public static class StringIdRegistrationExtensions
         if (hiLoBlockSize < 1)
             throw new ArgumentOutOfRangeException(nameof(hiLoBlockSize), "Block size must be >= 1.");
 
-        services.AddSingleton(new StringIdRegistration(
+        services.AddSingleton(new EntityCodeRegistration(
             EntityType: typeof(TEntity),
             Radical: radical,
             PadLength: padLength,
