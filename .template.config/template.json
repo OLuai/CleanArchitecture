@@ -8,8 +8,8 @@
     "React",
     "ASP.NET",
     "Clean Architecture"],
-  "name": "Clean Architecture Solution (React + Aspire)",
-  "description": "An opinionated Clean Architecture Solution Template: ASP.NET Core + .NET Aspire backend with a React 19 / TanStack / shadcn / Tailwind v4 / Vite / Orval single-page application and PostgreSQL.",
+  "name": "Clean Architecture Solution (Aspire, optional React)",
+  "description": "An opinionated Clean Architecture Solution Template: ASP.NET Core + .NET Aspire backend with PostgreSQL, and an optional React 19 / TanStack / shadcn / Tailwind v4 / Vite / Orval dashboard (--client-framework None for a Web API only).",
   "identity": "Clean.Architecture.Solution.CSharp",
   "groupIdentity": "Clean.Architecture.Solution",
   "shortName": "ca-sln",
@@ -36,9 +36,19 @@
         "value": "https://github.com/OLuai/CleanArchitecture"
       }
     },
-    "UseApiOnly": { "type": "computed", "value": "false" },
+    "ClientFramework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        { "choice": "React", "description": "React dashboard served by the Web project" },
+        { "choice": "None", "description": "Web API only" }
+      ],
+      "defaultValue": "React",
+      "description": "The client to generate: React, or None for a Web API only."
+    },
+    "UseApiOnly": { "type": "computed", "value": "(ClientFramework == \"None\")" },
     "UseAspire": { "type": "computed", "value": "true" },
-    "UseReact": { "type": "computed", "value": "true" },
+    "UseReact": { "type": "computed", "value": "(ClientFramework == \"React\")" },
     "UseAngular": { "type": "computed", "value": "false" },
     "UsePostgreSQL": { "type": "computed", "value": "true" },
     "UseSqlServer": { "type": "computed", "value": "false" },
@@ -82,6 +92,23 @@
           "condition": "(UseGithubActions)",
           "include": [
             ".github/**/*"
+          ]
+        },
+        {
+          "condition": "(UseApiOnly)",
+          "exclude": [
+            "src/Web/ClientApp/**/*",
+            ".claude/launch.json",
+            "tests/Web.AcceptanceTests/**/*"
+          ],
+          "rename": {
+            ".claude/launch.api-only.json": ".claude/launch.json"
+          }
+        },
+        {
+          "condition": "(!UseApiOnly)",
+          "exclude": [
+            ".claude/launch.api-only.json"
           ]
         },
         {

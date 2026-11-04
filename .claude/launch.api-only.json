@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "apphost",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "src/AppHost",
+        "--launch-profile",
+        "https"
+      ],
+      "url": "https://cleanarchitecture.dev.localhost:17245",
+      "port": 17245
+    }
+  ]
+}

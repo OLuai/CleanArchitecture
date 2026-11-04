@@ -90,13 +90,20 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+#if (UseApiOnly)
+// No client to serve: the root opens the API reference.
+app.Map("/", () => Results.Redirect("/scalar"));
+
+#endif
 app.MapDefaultEndpoints();
 app.MapEndpoints(typeof(Program).Assembly);
+#if (!UseApiOnly)
 
 // Unmatched /api routes must not reach the SPA fallback below: returning 200 + index.html for a
 // typo or a stale client build is a silent success the client cannot distinguish from real data.
 app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound));
 
 app.MapFallbackToFile("index.html");
+#endif
 
 app.Run();

@@ -10,8 +10,8 @@ dashboard. This repository is also a `dotnet new` template — see `TEMPLATE_GUI
 - **Test (all):** `dotnet test` — functional and acceptance tests need a container runtime
 - **Test (single project):** `dotnet test .\tests\Domain.UnitTests`
 - **Scaffold use case:** `dotnet new ca-usecase --name CreateFoo --feature-name Foos --usecase-type command --return-type int` (run from `src\Application`; omit `--return-type` for a void command)
-- **Generate TypeScript API client:** `npm run generate-api` (from `src\Web\ClientApp`)
-- **Frontend dev:** `npm start` (from `src\Web\ClientApp`; auto-runs `generate-api` via prestart hook)
+- **Generate TypeScript API client (React mode):** `npm run generate-api` (from `src\Web\ClientApp`)
+- **Frontend dev (React mode):** `npm start` (from `src\Web\ClientApp`; auto-runs `generate-api` via prestart hook)
 - **EF migrations:** `.\scripts\db\Add-Migration.ps1 -Name Foo`, `.\scripts\db\Update-Database.ps1`
 - **Template smoke test:** `.\build\test.ps1` (generates, builds and tests both client modes)
 
@@ -31,7 +31,11 @@ src/Shared           → Constants (service names, DB name)
 Dependency flow: Web → Application → Domain, Web → Infrastructure → Application → Domain. Shared
 is referenced by Web, Infrastructure, AppHost, and test projects.
 
-## Frontend
+## Frontend (React mode)
+
+Absent from solutions generated with `--client-framework None`: there `src/Web/ClientApp` and
+`tests/Web.AcceptanceTests` do not exist, and `/` redirects to the Scalar API reference.
+
 
 - React 19 + Vite + TypeScript (`.tsx`)
 - **Tailwind CSS v4** (`@tailwindcss/vite`) + **shadcn/ui** (`src/components/ui`, config in
@@ -117,7 +121,7 @@ is referenced by Web, Infrastructure, AppHost, and test projects.
 - **Functional tests** (`Application.FunctionalTests`): spin up a full Aspire
   `DistributedApplication` via `TestAppHost` with a real PostgreSQL container; use `Respawn` to
   reset the DB between tests
-- **Acceptance tests** (`Web.AcceptanceTests`): Playwright + Reqnroll (Gherkin `.feature` files);
+- **Acceptance tests** (`Web.AcceptanceTests`, React mode): Playwright + Reqnroll (Gherkin `.feature` files);
   start the **real** AppHost, so they use the shared PostgreSQL container and need
   `CA_SHARED_PG_PWD` set; headless when not debugging, slow-mo when attached
 - **Integration tests** (`Infrastructure.IntegrationTests`): currently empty project

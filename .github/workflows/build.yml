@@ -37,6 +37,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
+    #if (!UseApiOnly)
     - name: Install Node & cache npm packages
       uses: actions/setup-node@v7
       with:
@@ -44,6 +45,7 @@ jobs:
         cache: 'npm'
         cache-dependency-path: src/Web/ClientApp/package-lock.json
 
+    #endif
     - name: Install .NET
       uses: actions/setup-dotnet@v6
 
@@ -53,8 +55,10 @@ jobs:
     - name: Build solution
       run: dotnet build --no-restore --configuration Release
       
+    #if (!UseApiOnly)
     - name: Install Playwright browsers
       run: pwsh artifacts/bin/Web.AcceptanceTests/release/playwright.ps1 install --with-deps chromium
 
+    #endif
     - name: Test solution
       run: dotnet test --no-build --configuration Release

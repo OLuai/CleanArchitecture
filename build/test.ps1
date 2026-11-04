@@ -55,7 +55,8 @@ function CreateAndTestProject {
                 }
 
                 Write-Host "Installing Playwright browsers: $name"
-                pwsh artifacts/bin/Web.AcceptanceTests/release/playwright.ps1 install --with-deps chromium
+                # Called in-process: works from Windows PowerShell as well as pwsh.
+                & ./artifacts/bin/Web.AcceptanceTests/release/playwright.ps1 install --with-deps chromium
                 if ($LASTEXITCODE -ne 0) { throw "Playwright install failed for $name" }
             }
 

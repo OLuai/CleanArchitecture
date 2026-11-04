@@ -91,6 +91,7 @@ if (builder.ExecutionContext.IsRunMode)
         .WithEnvironment("Smtp__Security", "None")
         .WithEnvironment("Smtp__FromAddress", "noreply@cleanarchitecture.test")
         .WaitFor(mailpit);
+#if (!UseApiOnly)
 
     builder.AddJavaScriptApp(Services.WebFrontend, "./../Web/ClientApp")
         .WithRunScript("start")
@@ -98,6 +99,7 @@ if (builder.ExecutionContext.IsRunMode)
         .WaitFor(web)
         .WithHttpEndpoint(env: "PORT")
         .WithExternalHttpEndpoints();
+#endif
 }
 
 builder.Build().Run();
