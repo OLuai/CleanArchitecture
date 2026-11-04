@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Http.HttpResults;
 using CleanArchitecture.Application.WeatherForecasts.Queries.GetWeatherForecasts;
 using CleanArchitecture.Domain.Constants;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace CleanArchitecture.Web.Endpoints;
 

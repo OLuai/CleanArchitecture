@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
+using CleanArchitecture.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using CleanArchitecture.Domain.Common;
 
 namespace CleanArchitecture.Infrastructure.IdGeneration;
 

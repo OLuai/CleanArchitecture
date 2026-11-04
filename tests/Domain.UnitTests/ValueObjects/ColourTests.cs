@@ -1,6 +1,6 @@
-using NUnit.Framework;
 using CleanArchitecture.Domain.Exceptions;
 using CleanArchitecture.Domain.ValueObjects;
+using NUnit.Framework;
 using Shouldly;
 
 namespace CleanArchitecture.Domain.UnitTests.ValueObjects;

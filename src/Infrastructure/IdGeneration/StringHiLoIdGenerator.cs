@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
+using CleanArchitecture.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using CleanArchitecture.Infrastructure.Data;
 
 namespace CleanArchitecture.Infrastructure.IdGeneration;
 

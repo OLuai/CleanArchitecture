@@ -1,9 +1,9 @@
+using CleanArchitecture.Infrastructure.Data;
+using CleanArchitecture.Migration.Seed;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using CleanArchitecture.Infrastructure.Data;
-using CleanArchitecture.Migration.Seed;
 
 namespace CleanArchitecture.Migration.Workers;
 

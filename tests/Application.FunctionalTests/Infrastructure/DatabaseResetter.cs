@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Npgsql;
 using Respawn;
+using Respawn.Graph;
 
 namespace CleanArchitecture.Application.FunctionalTests.Infrastructure;
 
@@ -20,7 +21,17 @@ internal sealed class DatabaseResetter : IAsyncDisposable
         var connection = new NpgsqlConnection(connectionString);
 
         await connection.OpenAsync();
-        var respawner = await Respawner.CreateAsync(connection);
+
+        // Respawn defaults to the SQL Server adapter, which emits SQL Server syntax and would
+        // fail against PostgreSQL. The migrations history must survive a reset: the schema stays
+        // in place between tests, so wiping the history would make EF think it is unmigrated.
+        var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
+        {
+            DbAdapter = DbAdapter.Postgres,
+            SchemasToInclude = ["public"],
+            TablesToIgnore = [new Table("public", "__EFMigrationsHistory")]
+        });
+
         await connection.CloseAsync();
         return new DatabaseResetter(connection, respawner);
     }

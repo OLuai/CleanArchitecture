@@ -1,6 +1,6 @@
+using CleanArchitecture.Application.Common.Exceptions;
 using FluentValidation.Results;
 using NUnit.Framework;
-using CleanArchitecture.Application.Common.Exceptions;
 using Shouldly;
 
 namespace CleanArchitecture.Application.UnitTests.Common.Exceptions;

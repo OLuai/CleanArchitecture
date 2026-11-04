@@ -1,6 +1,6 @@
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using CleanArchitecture.Application.Common.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace CleanArchitecture.Application.Common.Behaviours;
 

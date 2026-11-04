@@ -1,6 +1,6 @@
+using CleanArchitecture.Infrastructure.IdGeneration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using CleanArchitecture.Infrastructure.IdGeneration;
 
 namespace CleanArchitecture.Infrastructure.Data.Configurations;
 

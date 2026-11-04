@@ -1,9 +1,8 @@
+using CleanArchitecture.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
-using CleanArchitecture.Domain.Constants;
 
 namespace CleanArchitecture.Infrastructure.Identity;
-
 /// <summary>
 /// Resolves authorization policies of the form <c>Permission:&lt;value&gt;</c> on the fly so that
 /// minimal-API endpoints can use <c>RequireAuthorization($"Permission:{Permissions.TodoLists.View}")</c>

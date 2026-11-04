@@ -1,10 +1,10 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Migration;
 using CleanArchitecture.Migration.Seed;
 using CleanArchitecture.Migration.Workers;
 using CleanArchitecture.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
 

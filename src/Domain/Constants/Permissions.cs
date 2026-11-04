@@ -1,7 +1,6 @@
 using System.Reflection;
 
 namespace CleanArchitecture.Domain.Constants;
-
 /// <summary>
 /// Catalogue des permissions de l'application. Source unique de vérité utilisée par le
 /// backend (AuthorizationBehaviour, AuthorizationPolicyProvider, seeding des RoleClaims)
@@ -28,7 +27,20 @@ public static class Permissions
     public static class Users
     {
         public const string View = "Users.View";
-        public const string Manage = "Users.Manage";
+        public const string Create = "Users.Create";
+        public const string Update = "Users.Update";
+        public const string Delete = "Users.Delete";
+
+        /// <summary>Assign or revoke a user's roles.</summary>
+        public const string ManageRoles = "Users.ManageRoles";
+    }
+
+    public static class Roles
+    {
+        public const string View = "Roles.View";
+
+        /// <summary>Create or delete roles and edit the permissions they grant.</summary>
+        public const string Manage = "Roles.Manage";
     }
 
     public static class WeatherForecasts

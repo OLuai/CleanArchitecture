@@ -1,10 +1,9 @@
 using System.Text.Json.Nodes;
+using CleanArchitecture.Domain.Constants;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using CleanArchitecture.Domain.Constants;
 
 namespace CleanArchitecture.Web.Infrastructure;
-
 /// <summary>
 /// Injects the application's <see cref="Permissions"/> catalogue into the OpenAPI document as a
 /// string enum named <c>Permission</c>, and rewires <c>UserInfoResponse.permissions[]</c> to

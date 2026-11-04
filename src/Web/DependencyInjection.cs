@@ -1,9 +1,11 @@
 using System.Text.Json;
-using Azure.Identity;
-using Microsoft.AspNetCore.Mvc;
+using System.Threading.RateLimiting;
 using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Infrastructure.Data;
 using CleanArchitecture.Web.Services;
+using Azure.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -47,9 +49,47 @@ public static class DependencyInjection
             options.AddOperationTransformer<ApiExceptionOperationTransformer>();
             options.AddOperationTransformer<IdentityApiOperationTransformer>();
             options.AddDocumentTransformer<PermissionsDocumentTransformer>();
+            options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+            options.AddSchemaTransformer<NumericSchemaTransformer>();
         });
 
-        builder.Services.AddCors();
+        // Anonymous endpoints (login, register, password reset, any public read surface) are
+        // otherwise wide open to brute-force and enumeration. Apply with
+        // `.RequireRateLimiting(RateLimitPolicies.Public)` on the routes that need it.
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(RateLimitPolicies.Public, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+        });
+
+        // The SPA is served same-origin (Vite proxies /api in development, wwwroot in production),
+        // so no cross-origin access is granted by default. Set Cors:AllowedOrigins to open the API
+        // to other origins; credentials are allowed because authentication is cookie-based, and
+        // that combination forbids the AllowAnyOrigin wildcard.
+        var allowedOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+        builder.Services.AddCors(options =>
+            options.AddDefaultPolicy(policy =>
+            {
+                if (allowedOrigins.Length == 0)
+                {
+                    return;
+                }
+
+                policy.WithOrigins(allowedOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            }));
     }
 
     public static void AddKeyVaultIfConfigured(this IHostApplicationBuilder builder)

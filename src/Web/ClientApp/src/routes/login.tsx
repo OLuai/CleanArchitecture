@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLogin } from '@/lib/auth';
+import { apiErrorMessage } from '@/lib/api-error';
 import { ApiError } from '@/api/mutator/custom-fetch';
 
 export const Route = createFileRoute('/login')({
@@ -36,10 +37,12 @@ function LoginPage() {
         await login.mutateAsync({ data: value });
         navigate({ to: returnUrl ?? '/' });
       } catch (e) {
+        // 401 is the expected failure and its server-side detail is deliberately vague, so
+        // phrase it here; anything else (429, 500, offline) carries a message worth showing.
         setError(
           e instanceof ApiError && e.status === 401
             ? 'Invalid username/email or password.'
-            : 'Login failed. Please try again.'
+            : apiErrorMessage(e, 'Login failed. Please try again.')
         );
       }
     },

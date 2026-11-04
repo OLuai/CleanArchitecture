@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using CleanArchitecture.Domain.Common;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CleanArchitecture.Infrastructure.IdGeneration;
 

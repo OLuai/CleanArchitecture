@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { successData } from '@/lib/api';
 import { ensureAuthenticated } from '@/lib/auth';
 import { Can, ensurePermission, Permission } from '@/lib/permissions';
 import {
@@ -59,8 +60,6 @@ export const Route = createFileRoute('/todo')({
   component: TodoPage,
 });
 
-type Id = number | string;
-
 function TodoPage() {
   const queryClient = useQueryClient();
   const invalidate = () =>
@@ -82,10 +81,10 @@ function TodoPage() {
   const deleteItem = useDeleteTodoItem(mutationOpts);
   const updateItemDetail = useUpdateTodoItemDetail(mutationOpts);
 
-  const [selectedListId, setSelectedListId] = useState<Id | null>(null);
+  const [selectedListId, setSelectedListId] = useState<number | null>(null);
   const [addingItem, setAddingItem] = useState(false);
   const [newItemTitle, setNewItemTitle] = useState('');
-  const [editingItemId, setEditingItemId] = useState<Id | null>(null);
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
 
   // Fall back to the first list until the user explicitly picks one.
@@ -94,7 +93,7 @@ function TodoPage() {
   const remaining = (list: TodoListDto) =>
     (list.items ?? []).filter((i) => !i.done).length;
 
-  const selectList = (id: Id | null) => {
+  const selectList = (id: number | null) => {
     setSelectedListId(id);
     setAddingItem(false);
     setNewItemTitle('');
@@ -122,7 +121,7 @@ function TodoPage() {
     const created = await createList.mutateAsync({
       data: { title: newListTitle.trim(), colour: newListColour },
     });
-    setSelectedListId(created.data as Id);
+    setSelectedListId(successData(created) ?? null);
     setNewListOpen(false);
   };
 
@@ -196,8 +195,8 @@ function TodoPage() {
   // ── Item details dialog ──────────────────────────────────────────────────────
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<TodoItemDto | null>(null);
-  const [detailListId, setDetailListId] = useState<Id | undefined>(undefined);
-  const [detailPriority, setDetailPriority] = useState<Id | undefined>(undefined);
+  const [detailListId, setDetailListId] = useState<number | undefined>(undefined);
+  const [detailPriority, setDetailPriority] = useState<number | undefined>(undefined);
   const [detailNote, setDetailNote] = useState('');
 
   const openDetails = (item: TodoItemDto) => {
@@ -466,7 +465,7 @@ function TodoPage() {
               <Label>List</Label>
               <Select
                 value={detailListId == null ? undefined : String(detailListId)}
-                onValueChange={(v) => setDetailListId(v)}
+                onValueChange={(v) => setDetailListId(Number(v))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a list" />
@@ -484,7 +483,7 @@ function TodoPage() {
               <Label>Priority</Label>
               <Select
                 value={detailPriority == null ? undefined : String(detailPriority)}
-                onValueChange={(v) => setDetailPriority(v)}
+                onValueChange={(v) => setDetailPriority(Number(v))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a priority" />

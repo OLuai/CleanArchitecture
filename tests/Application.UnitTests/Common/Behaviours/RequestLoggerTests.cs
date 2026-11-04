@@ -1,9 +1,9 @@
-using Microsoft.Extensions.Logging;
-using Moq;
-using NUnit.Framework;
 using CleanArchitecture.Application.Common.Behaviours;
 using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Application.TodoItems.Commands.CreateTodoItem;
+using Microsoft.Extensions.Logging;
+using Moq;
+using NUnit.Framework;
 
 namespace CleanArchitecture.Application.UnitTests.Common.Behaviours;
 
