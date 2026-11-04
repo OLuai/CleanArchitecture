@@ -1,3 +1,4 @@
+using System.Reflection;
 using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Application.Common.Security;
 using CleanArchitecture.Infrastructure.Data;
@@ -87,8 +88,16 @@ public static class DependencyInjection
         // Without a durable key ring, Data Protection generates keys in the container filesystem:
         // every redeploy invalidates all auth cookies and antiforgery tokens, and two replicas
         // cannot read each other's. Persisting to the database fixes both.
-        builder.Services.AddDataProtection()
-            .PersistKeysToDbContext<ApplicationDbContext>();
+        //
+        // Except while the build generates the OpenAPI document: dotnet-getdocument starts the app
+        // to read its endpoints, with no database running. Loading the key ring from it would sit
+        // through every connection retry (about a minute and a half per build) for keys the
+        // document never uses.
+        var dataProtection = builder.Services.AddDataProtection();
+        if (!IsOpenApiDocumentGeneration())
+        {
+            dataProtection.PersistKeysToDbContext<ApplicationDbContext>();
+        }
 
         // Permissions are carried as claims inside the auth cookie, so a role change only reaches
         // an open session when the cookie is revalidated. Five minutes bounds how long a user can
@@ -126,4 +135,9 @@ public static class DependencyInjection
         builder.Services.AddSingleton<
             Microsoft.AspNetCore.Identity.IEmailSender<ApplicationUser>, IdentityEmailSender>();
     }
+
+    // dotnet-getdocument (Microsoft.Extensions.ApiDescription.Server) runs the app through this
+    // entry assembly when it writes wwwroot/openapi at build time.
+    private static bool IsOpenApiDocumentGeneration() =>
+        Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
 }
