@@ -154,11 +154,3 @@ pwsh artifacts/bin/Web.AcceptanceTests/release/playwright.ps1 install chromium
 ```bash
 dotnet test
 ```
-
-## Deployment
-
-`deploy/` holds a self-hosted deployment: a Docker Compose stack (PostgreSQL, the migration job,
-the web app) published through a shared Traefik that terminates TLS. `deploy/.env.example`
-documents every configuration value the stack needs, and `deploy/README.md` covers first-time
-host setup. `.github/workflows/_deploy.yml` is a reusable workflow that builds and pushes both
-images and runs the deployment.

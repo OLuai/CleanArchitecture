@@ -26,7 +26,6 @@ src/Infrastructure   → EF Core (PostgreSQL/Npgsql), ASP.NET Identity
 src/Migration        → Worker that applies migrations and seeds, then exits
 src/ServiceDefaults  → Aspire shared service configuration
 src/Shared           → Constants (service names, DB name)
-deploy/              → Docker Compose + Traefik deployment, and its Dockerfiles
 ```
 
 Dependency flow: Web → Application → Domain, Web → Infrastructure → Application → Domain. Shared

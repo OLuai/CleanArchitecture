@@ -1,2 +1,0 @@
-# Shell scripts run on Linux hosts: never let a Windows checkout turn them into CRLF.
-*.sh text eol=lf
