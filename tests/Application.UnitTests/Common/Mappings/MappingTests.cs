@@ -1,10 +1,10 @@
 using System.Runtime.CompilerServices;
-using AutoMapper;
-using Microsoft.Extensions.Logging;
-using NUnit.Framework;
 using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Application.TodoLists.Queries.GetTodos;
 using CleanArchitecture.Domain.Entities;
+using AutoMapper;
+using Microsoft.Extensions.Logging;
+using NUnit.Framework;
 
 namespace CleanArchitecture.Application.UnitTests.Common.Mappings;
 

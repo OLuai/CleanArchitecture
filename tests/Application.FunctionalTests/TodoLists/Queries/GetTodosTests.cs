@@ -50,6 +50,8 @@ public class GetTodosTests : TestBase
     [Test]
     public async Task ShouldDenyAnonymousUser()
     {
+        TestApp.RunAsAnonymous();
+
         var query = new GetTodosQuery();
 
         var action = () => TestApp.SendAsync(query);

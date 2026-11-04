@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1.7
+# Multi-stage image: .NET + npm build in the SDK, minimal aspnet runtime.
+
+ARG DOTNET_VERSION=10.0
+ARG NODE_VERSION=22
+
+# ----- Stage 1: .NET build (the SPA is compiled by Web.csproj's PublishRunWebpack target) -----
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
+ARG NODE_VERSION
+WORKDIR /src
+
+# Node.js is required by the PublishRunWebpack target, which runs npm install + npm run build.
+# Drop this block when generating an API-only solution.
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs \
+ && rm -rf /var/lib/apt/lists/*
+
+# Copy the build inputs first so the restore layer stays cached across source-only changes.
+COPY global.json Directory.Build.props Directory.Packages.props CleanArchitecture.slnx ./
+COPY src/ ./src/
+
+RUN dotnet restore ./src/Web/Web.csproj
+RUN dotnet publish ./src/Web/Web.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/publish \
+    /p:UseAppHost=false
+
+# ----- Stage 2: runtime -----
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS runtime
+WORKDIR /app
+
+# curl backs the healthcheck below.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/publish ./
+
+ENV ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_RUNNING_IN_CONTAINER=true
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -fsS http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["dotnet", "CleanArchitecture.Web.dll"]

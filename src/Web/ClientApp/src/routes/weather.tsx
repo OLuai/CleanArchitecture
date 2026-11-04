@@ -1,20 +1,15 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { ArrowUpDownIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { DataTable, type DataTableColumnDef } from '@/components/data-table';
-import { ensureAuthenticated } from '@/lib/auth';
+import { Permission, ensurePermission } from '@/lib/permissions';
 import { useGetWeatherForecasts } from '@/api/generated/weather-forecasts/weather-forecasts';
 import type { WeatherForecast } from '@/api/generated/model';
 
 export const Route = createFileRoute('/weather')({
-  beforeLoad: async ({ context, location }) => {
-    try {
-      await ensureAuthenticated(context.queryClient);
-    } catch {
-      throw redirect({ to: '/login', search: { returnUrl: location.pathname } });
-    }
-  },
+  beforeLoad: ({ context }) =>
+    ensurePermission(context.queryClient, Permission.WeatherForecastsView),
   component: WeatherPage,
 });
 

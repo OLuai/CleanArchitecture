@@ -1,7 +1,7 @@
+using CleanArchitecture.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using CleanArchitecture.Domain.Common;
 
 namespace CleanArchitecture.Infrastructure.Data.Interceptors;
 

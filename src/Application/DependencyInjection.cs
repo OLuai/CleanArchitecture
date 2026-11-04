@@ -1,6 +1,6 @@
 using System.Reflection;
-using Microsoft.Extensions.Hosting;
 using CleanArchitecture.Application.Common.Behaviours;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.Extensions.DependencyInjection;
 

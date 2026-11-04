@@ -1,11 +1,16 @@
 # Shared helpers for EF Core scripts. Dot-source from sibling scripts.
 #
-# Connection string contract (matches the Aspire AppHost-managed Postgres container):
+# Connection string contract (matches the shared Aspire-managed Postgres container):
 #   Host=localhost ; Port=5431 ; Database=CleanArchitectureDb ; Username=postgres
-#   Password=$env:CLEANARCHITECTURE_PG_PWD  (set this once for your machine, e.g.:
-#                                    setx CLEANARCHITECTURE_PG_PWD '<the password you gave to
-#                                    dotnet user-secrets set Parameters:postgres-password>'
-#                                    and reopen the shell)
+#   Password=$env:CA_SHARED_PG_PWD
+#
+# CA_SHARED_PG_PWD is machine-wide and deliberately not named after the project: every solution
+# generated from this template targets the same PostgreSQL container, each with its own database
+# inside it, so they all authenticate with the same password. Set it once:
+#
+#   setx CA_SHARED_PG_PWD '<the password the container was created with>'
+#
+# then reopen the shell. The AppHost reads the same variable.
 #
 # The connection string is exported as ConnectionStrings__CleanArchitectureDb so that the
 # IDesignTimeDbContextFactory in src/Infrastructure picks it up without launching a host.
@@ -17,12 +22,12 @@ $script:InfrastructureProject = Join-Path $RepoRoot 'src\Infrastructure\Infrastr
 $script:StartupProject       = Join-Path $RepoRoot 'src\Migration\Migration.csproj'
 
 function Get-CleanArchitectureConnectionString {
-    $pwd = $env:CLEANARCHITECTURE_PG_PWD
-    if ([string]::IsNullOrWhiteSpace($pwd)) {
-        Write-Warning "CLEANARCHITECTURE_PG_PWD environment variable is not set. Falling back to 'postgres' (works only if you chose that password for the AppHost parameter)."
-        $pwd = 'postgres'
+    $password = $env:CA_SHARED_PG_PWD
+    if ([string]::IsNullOrWhiteSpace($password)) {
+        Write-Warning "CA_SHARED_PG_PWD environment variable is not set. Falling back to 'postgres' (works only if the shared container was created with that password)."
+        $password = 'postgres'
     }
-    return "Host=localhost;Port=5431;Database=CleanArchitectureDb;Username=postgres;Password=$pwd"
+    return "Host=localhost;Port=5431;Database=CleanArchitectureDb;Username=postgres;Password=$password"
 }
 
 function Initialize-DbToolingEnv {

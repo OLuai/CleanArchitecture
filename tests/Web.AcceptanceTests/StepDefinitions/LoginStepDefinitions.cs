@@ -12,7 +12,7 @@ public sealed class LoginStepDefinitions(LoginPage loginPage)
         container.RegisterInstanceAs(new LoginPage(page));
     }
 
-    [AfterFeature]
+    [AfterFeature("Login")]
     public static async Task AfterLoginFeature(IObjectContainer container)
     {
         var context = container.Resolve<IBrowserContext>();

@@ -17,6 +17,9 @@ on:
         required: true
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
@@ -30,18 +33,16 @@ jobs:
       uses: actions/cache@v6
       with:
         path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/Directory.Packages.props', '**/*.csproj') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
 
-    #if (!UseApiOnly)
     - name: Install Node & cache npm packages
       uses: actions/setup-node@v7
       with:
         node-version: '26.x'
         cache: 'npm'
         cache-dependency-path: src/Web/ClientApp/package-lock.json
-    #endif
 
     - name: Install .NET
       uses: actions/setup-dotnet@v6
@@ -52,22 +53,8 @@ jobs:
     - name: Build solution
       run: dotnet build --no-restore --configuration Release
       
+    - name: Install Playwright browsers
+      run: pwsh artifacts/bin/Web.AcceptanceTests/release/playwright.ps1 install --with-deps chromium
+
     - name: Test solution
-      run: dotnet test --no-build --configuration Release --filter "FullyQualifiedName!~AcceptanceTests"
-
-    - name: Publish website
-      if: ${{ inputs.build-artifacts == true }}
-      run: |
-        dotnet publish --configuration Release --runtime win-x86 --self-contained --output ./publish
-        cd publish
-        zip -r ./publish.zip .
-      working-directory: ./src/Web/
-
-    - name: Upload website artifact (website)
-      if: ${{ inputs.build-artifacts == true }}
-      uses: actions/upload-artifact@v7
-      with:
-        name: website
-        path: ./src/Web/publish/publish.zip
-        if-no-files-found: error
-
+      run: dotnet test --no-build --configuration Release

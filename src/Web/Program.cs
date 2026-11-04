@@ -1,4 +1,6 @@
+using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +16,31 @@ builder.AddApplicationServices();
 builder.AddInfrastructureServices();
 builder.AddWebServices();
 
+// Behind a reverse proxy (Traefik or nginx in production, Aspire in development) the backend
+// receives plain HTTP even though the client request was HTTPS. Without this, Request.Scheme is
+// wrong: HTTPS redirects loop, Secure cookies are not recognised as secure, and any absolute URL
+// the app builds (password-reset links, OAuth redirect_uri) points at the internal scheme/host.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+        | ForwardedHeaders.XForwardedProto
+        | ForwardedHeaders.XForwardedHost;
+
+    // On .NET 8+ an empty KnownIPNetworks/KnownProxies means "no proxy is trusted", so the
+    // X-Forwarded-* headers are ignored — it does not mean "trust any proxy". Container proxies
+    // get dynamic addresses, so trust the whole range. Only do this when the app is never
+    // reachable directly, i.e. the proxy is the sole ingress.
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Any, 0));
+    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.IPv6Any, 0));
+    options.ForwardLimit = null;
+});
+
 var app = builder.Build();
+
+// Must run before any middleware that depends on the scheme (HTTPS redirect, cookies, auth).
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -24,10 +50,9 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors(static builder =>
-    builder.AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowAnyOrigin());
+app.UseCors();
+
+app.UseRateLimiter();
 
 app.UseFileServer();
 
@@ -58,9 +83,19 @@ app.UseStatusCodePages(async statusCodeContext =>
     });
 });
 
+// Force the Routing -> Authentication -> Authorization order to come after UseForwardedHeaders.
+// Without these explicit calls WebApplication auto-inserts them at the very start of the
+// pipeline, so the authentication middleware would run before the forwarded scheme is applied.
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapDefaultEndpoints();
 app.MapEndpoints(typeof(Program).Assembly);
+
+// Unmatched /api routes must not reach the SPA fallback below: returning 200 + index.html for a
+// typo or a stale client build is a silent success the client cannot distinguish from real data.
+app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound));
 
 app.MapFallbackToFile("index.html");
 
