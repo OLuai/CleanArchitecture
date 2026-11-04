@@ -8,7 +8,10 @@ internal static class AspireExtensions
             var aspNetCoreEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             var dotnetEnv = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
 
-            var environment = aspNetCoreEnv ?? dotnetEnv ?? "Development";
+            // Use the AppHost's environment if set. Otherwise default to Development
+            // when running locally and Production when publishing or deploying.
+            var environment = aspNetCoreEnv ?? dotnetEnv
+                ?? (context.ExecutionContext.IsRunMode ? "Development" : "Production");
 
             context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
             context.EnvironmentVariables["DOTNET_ENVIRONMENT"] = environment;

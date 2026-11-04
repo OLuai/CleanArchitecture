@@ -1,9 +1,10 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.3.5">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.4">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>CleanArchitecture.AppHost</RootNamespace>
     <AssemblyName>CleanArchitecture.AppHost</AssemblyName>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
     <UserSecretsId>cleanarchitecture-apphost</UserSecretsId>
   </PropertyGroup>
 
