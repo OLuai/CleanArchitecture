@@ -2,9 +2,9 @@ using System.Reflection;
 
 namespace CleanArchitecture.Domain.Constants;
 /// <summary>
-/// Catalogue des permissions de l'application. Source unique de vérité utilisée par le
-/// backend (AuthorizationBehaviour, AuthorizationPolicyProvider, seeding des RoleClaims)
-/// et par le frontend (exposé via l'OpenAPI sous forme d'enum TypeScript).
+/// Catalogue of the application's permissions. Single source of truth used by the
+/// backend (AuthorizationBehaviour, AuthorizationPolicyProvider, RoleClaims seeding)
+/// and by the frontend (exposed through OpenAPI as a TypeScript enum).
 /// </summary>
 public static class Permissions
 {

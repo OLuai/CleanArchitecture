@@ -4,7 +4,11 @@ param (
     [string[]]$ClientFramework = @("React", "None")
 )
 
-$outputPath = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts\template-tests"
+$root = Split-Path $PSScriptRoot -Parent
+$outputPath = Join-Path $root "artifacts\template-tests"
+# A private template registry: this folder's current state is what gets tested, and the template
+# the user installed (the repack.ps1 package) is left untouched.
+$hive = Join-Path $outputPath ".hive"
 $results = @()
 
 function CreateAndTestProject {
@@ -24,7 +28,7 @@ function CreateAndTestProject {
         Write-Host "Creating project: $name"
         $startTime = Get-Date
 
-        dotnet new ca-sln --client-framework $clientFramework --name CleanArchitecture --output $projectPath --no-update-check
+        dotnet new ca-sln --client-framework $clientFramework --name CleanArchitecture --output $projectPath --no-update-check --debug:custom-hive $hive
         if ($LASTEXITCODE -ne 0) { throw "dotnet new ca-sln failed for $name" }
 
         $exitCode = 0
@@ -91,6 +95,10 @@ function CreateAndTestProject {
 if (-not (Test-Path $outputPath)) {
     New-Item -ItemType Directory -Path $outputPath | Out-Null
 }
+
+if (Test-Path $hive) { Remove-Item -Recurse -Force $hive }
+dotnet new install $root --debug:custom-hive $hive | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Could not install the template from $root" }
 
 foreach ($cf in $ClientFramework) {
     CreateAndTestProject -clientFramework $cf

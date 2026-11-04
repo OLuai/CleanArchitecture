@@ -7,7 +7,7 @@ namespace CleanArchitecture.Application.TodoItems.Commands.UpdateTodoItem;
 [Authorize(Permissions = Permissions.TodoItems.Update)]
 public record UpdateTodoItemCommand : IRequest
 {
-    public int Id { get; init; }
+    public Guid Id { get; init; }
 
     public string? Title { get; init; }
 

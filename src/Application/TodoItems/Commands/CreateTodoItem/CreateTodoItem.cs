@@ -6,14 +6,14 @@ using CleanArchitecture.Domain.Entities;
 namespace CleanArchitecture.Application.TodoItems.Commands.CreateTodoItem;
 
 [Authorize(Permissions = Permissions.TodoItems.Create)]
-public record CreateTodoItemCommand : IRequest<int>
+public record CreateTodoItemCommand : IRequest<Guid>
 {
-    public int ListId { get; init; }
+    public Guid ListId { get; init; }
 
     public string? Title { get; init; }
 }
 
-public class CreateTodoItemCommandHandler : IRequestHandler<CreateTodoItemCommand, int>
+public class CreateTodoItemCommandHandler : IRequestHandler<CreateTodoItemCommand, Guid>
 {
     private readonly IApplicationDbContext _context;
 
@@ -22,7 +22,7 @@ public class CreateTodoItemCommandHandler : IRequestHandler<CreateTodoItemComman
         _context = context;
     }
 
-    public async Task<int> Handle(CreateTodoItemCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateTodoItemCommand request, CancellationToken cancellationToken)
     {
         var entity = new TodoItem
         {

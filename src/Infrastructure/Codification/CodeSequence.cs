@@ -1,8 +1,8 @@
 namespace CleanArchitecture.Infrastructure.Codification;
 
 /// <summary>
-/// Compteur persistant par radical, d'où <c>HiLoCodeGenerator</c> réserve ses blocs. Une ligne
-/// par famille de codes (<c>PRJ</c>, <c>INV</c>, <c>PRD</c>…).
+/// Persistent counter per prefix, from which <c>HiLoCodeGenerator</c> reserves its blocks. One row
+/// per code family (<c>PRJ</c>, <c>INV</c>, <c>PRD</c>…).
 /// </summary>
 public class CodeSequence
 {

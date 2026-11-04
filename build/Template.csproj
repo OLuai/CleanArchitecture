@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Packs the template from CleanArchitecture.nuspec with `dotnet pack`, so no nuget.exe (or Mono on
+    Linux) is needed. Nothing is compiled: the package only carries the template sources.
+
+      dotnet pack build/Template.csproj -p:PackageVersion=1.2.3 -o artifacts/packages
+  -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <NoWarn>$(NoWarn);NU5110;NU5111;NU5128</NoWarn>
+    <!-- Dot-folders (.template.config, .github, .claude, .config) are part of the template. -->
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <NuspecFile>$(MSBuildThisFileDirectory)..\CleanArchitecture.nuspec</NuspecFile>
+    <NuspecBasePath>$(MSBuildThisFileDirectory)..</NuspecBasePath>
+    <PackageVersion Condition="'$(PackageVersion)' == ''">0.0.0-local</PackageVersion>
+    <NuspecProperties>version=$(PackageVersion)</NuspecProperties>
+  </PropertyGroup>
+
+</Project>

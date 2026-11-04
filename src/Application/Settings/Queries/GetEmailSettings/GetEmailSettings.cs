@@ -7,25 +7,25 @@ using CleanArchitecture.Domain.Enums;
 
 namespace CleanArchitecture.Application.Settings.Queries.GetEmailSettings;
 
-/// <summary>D'où viennent les réglages qui s'appliquent réellement.</summary>
+/// <summary>Where the settings that actually apply come from.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<EmailSettingsSource>))]
 public enum EmailSettingsSource
 {
-    /// <summary>Aucun relais configuré : rien n'est envoyé.</summary>
+    /// <summary>No relay configured: nothing is sent.</summary>
     None = 0,
 
-    /// <summary>La configuration du déploiement — section <c>Smtp</c>, variables <c>Smtp__*</c>.</summary>
+    /// <summary>The deployment's configuration — <c>Smtp</c> section, <c>Smtp__*</c> variables.</summary>
     Environment = 1,
 
-    /// <summary>Une ligne enregistrée depuis cet écran, qui surcharge l'environnement.</summary>
+    /// <summary>A row saved from this screen, which overrides the environment.</summary>
     Database = 2
 }
 
 /// <summary>
-/// Les réglages d'envoi tels qu'ils s'appliquent, et d'où ils viennent.
+/// The sending settings as they apply, and where they come from.
 /// <para>
-/// <b>Aucun mot de passe n'y figure</b>, ni chiffré ni en clair : seulement le fait qu'il y en ait
-/// un. Un réglage qu'on peut saisir n'a pas à pouvoir être relu.
+/// <b>No password appears here</b>, neither encrypted nor in plain text: only the fact that there is
+/// one. A setting that can be typed in does not need to be readable back.
 /// </para>
 /// </summary>
 public record EmailSettingsDto
@@ -40,7 +40,7 @@ public record EmailSettingsDto
 
     public string? UserName { get; init; }
 
-    /// <summary>Un mot de passe est enregistré. Sa valeur ne sort jamais.</summary>
+    /// <summary>A password is saved. Its value never leaves.</summary>
     public bool HasPassword { get; init; }
 
     public string? FromAddress { get; init; }
@@ -84,14 +84,14 @@ public class GetEmailSettingsQueryHandler : IRequestHandler<GetEmailSettingsQuer
             };
         }
 
-        // Rien en base : c'est le déploiement qui décide. L'écran le dit, pour qu'un
-        // administrateur sache qu'il regarde des valeurs venues d'ailleurs.
+        // Nothing in the database: the deployment decides. The screen says so, so that an
+        // administrator knows they are looking at values that came from elsewhere.
         if (string.IsNullOrWhiteSpace(_configured.Host))
         {
-            // Rien nulle part : on renvoie tout de même un point de départ plausible plutôt que
-            // les valeurs par défaut des types. `SmtpSecurity.None` étant la valeur zéro, un
-            // formulaire vierge proposerait sinon « aucun chiffrement » — le pire des trois choix
-            // à afficher par défaut.
+            // Nothing anywhere: still return a plausible starting point rather than
+            // the types' default values. Since `SmtpSecurity.None` is the zero value, a
+            // blank form would otherwise offer "no encryption" — the worst of the three choices
+            // to show by default.
             return new EmailSettingsDto
             {
                 Source = EmailSettingsSource.None,

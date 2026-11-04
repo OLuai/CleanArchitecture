@@ -83,3 +83,6 @@ jobs:
     - name: Test solution
       working-directory: generated
       run: dotnet test --no-build --configuration Release
+      env:
+        # Read by the real AppHost that the acceptance tests start; the container is fresh here.
+        CA_SHARED_PG_PWD: ci-only-password

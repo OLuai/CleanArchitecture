@@ -1,24 +1,24 @@
 namespace CleanArchitecture.Domain.Entities;
 
 /// <summary>
-/// Les réglages du relais SMTP, saisis depuis l'écran d'administration.
+/// The SMTP relay settings, entered from the administration screen.
 /// <para>
-/// Une seule ligne, garantie par une clé primaire constante : deux configurations d'envoi
-/// simultanées n'auraient aucun sens, et un « prendre la première » se serait mis à dépendre de
-/// l'ordre d'insertion le jour où une deuxième aurait été créée par accident.
+/// A single row, guaranteed by a constant primary key: two simultaneous sending configurations
+/// would make no sense, and a "take the first one" would have come to depend on
+/// insertion order the day a second one was created by accident.
 /// </para>
 /// <para>
-/// Ces réglages <b>surchargent</b> ceux de la configuration (section <c>Smtp</c>, variables
-/// d'environnement <c>Smtp__*</c>). Sans ligne ici, c'est l'environnement qui s'applique — un
-/// déploiement fonctionne donc sans que personne n'ouvre l'écran, et un administrateur peut
-/// corriger un réglage sans redéployer.
+/// These settings <b>override</b> those of the configuration (<c>Smtp</c> section, <c>Smtp__*</c>
+/// environment variables). With no row here, the environment applies — a
+/// deployment therefore works without anyone opening the screen, and an administrator can
+/// fix a setting without redeploying.
 /// </para>
 /// </summary>
 public class EmailSettings : BaseAuditableEntity<Guid>
 {
     /// <summary>
-    /// Clé unique de l'unique ligne. Constante et non générée : c'est elle qui rend la table
-    /// singleton, sans colonne technique ni index à expression.
+    /// Unique key of the single row. Constant rather than generated: it is what makes the table a
+    /// singleton, with no technical column or expression index.
     /// </summary>
     public static readonly Guid SingletonId = new("00000000-0000-0000-0000-000000000001");
 
@@ -28,18 +28,18 @@ public class EmailSettings : BaseAuditableEntity<Guid>
 
     public SmtpSecurity Security { get; set; }
 
-    /// <summary>Nul pour un relais qui n'exige pas d'authentification.</summary>
+    /// <summary>Null for a relay that does not require authentication.</summary>
     public string? UserName { get; set; }
 
     /// <summary>
-    /// Mot de passe chiffré par <c>ISecretProtector</c>, jamais en clair en base et jamais
-    /// renvoyé au client. Nul quand le relais n'en demande pas.
+    /// Password encrypted by <c>ISecretProtector</c>, never in plain text in the database and never
+    /// returned to the client. Null when the relay does not require one.
     /// </summary>
     public string? ProtectedPassword { get; set; }
 
-    /// <summary>Adresse d'expédition. Le relais refuse souvent d'en servir une autre.</summary>
+    /// <summary>Sender address. The relay often refuses to send from any other.</summary>
     public string FromAddress { get; set; } = null!;
 
-    /// <summary>Nom affiché à côté de l'adresse : « CleanArchitecture ».</summary>
+    /// <summary>Name displayed next to the address: "CleanArchitecture".</summary>
     public string? FromName { get; set; }
 }

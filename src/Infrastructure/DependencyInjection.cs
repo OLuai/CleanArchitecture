@@ -1,6 +1,7 @@
 using System.Reflection;
 using CleanArchitecture.Application.Common.Interfaces;
 using CleanArchitecture.Application.Common.Security;
+using CleanArchitecture.Domain.Entities;
 using CleanArchitecture.Infrastructure.Data;
 using CleanArchitecture.Infrastructure.Data.Interceptors;
 using CleanArchitecture.Infrastructure.Email;
@@ -33,8 +34,9 @@ public static class DependencyInjection
         builder.Services.AddSingleton<CodeRegistry>();
         builder.Services.AddSingleton<HiLoCodeGenerator>();
 
-        // Business codes beside the GUID keys, e.g. builder.Services.RegisterCode<Project>("PRJ")
-        // for PRJ-000123: what a person reads, dictates over the phone and quotes in a ticket.
+        // Business codes beside the GUID keys: what a person reads, dictates over the phone and quotes
+        // in a ticket. Each IHasCode entity declares its radical here.
+        builder.Services.RegisterCode<TodoList>("LST");
 
         builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {

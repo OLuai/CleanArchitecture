@@ -50,15 +50,6 @@ public static class Services
     public const string Mailpit = "mailpit";
 
     /// <summary>
-    /// Fixed host ports for Mailpit, so a test plan can name <c>http://localhost:8025</c>. Not
-    /// under <see cref="Shared"/>: this container is not pooled between solutions, it is as
-    /// disposable as the messages it holds.
-    /// </summary>
-    public const int MailpitSmtpHostPort = 1025;
-
-    public const int MailpitHttpHostPort = 8025;
-
-    /// <summary>
     /// Names of the shared local development containers.
     /// <para>
     /// Deliberately free of the project name: every solution generated from this template targets
@@ -79,6 +70,17 @@ public static class Services
         public const int PostgresHostPort = 5431;
 
         public const int PgAdminHostPort = 5050;
+
+        /// <summary>
+        /// The development mailbox, shared like PostgreSQL: on fixed host ports, one container per
+        /// machine rather than per solution, or two solutions running at once would fight over
+        /// them. Every solution's mail lands in the same inbox at <c>http://localhost:8025</c>.
+        /// </summary>
+        public const string MailpitContainer = "ca-shared-mailpit";
+
+        public const int MailpitSmtpHostPort = 1025;
+
+        public const int MailpitHttpHostPort = 8025;
 
         /// <summary>
         /// Machine-wide environment variable holding the shared PostgreSQL password.

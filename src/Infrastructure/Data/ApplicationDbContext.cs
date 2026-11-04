@@ -32,9 +32,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
-        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
+        // Conventions first, so an entity configuration can still override them.
         ApplyKeyAndCodeConventions(builder);
+
+        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
         // Map DbSearchExtensions.Unaccent to the f_unaccent SQL function (an IMMUTABLE wrapper
         // around the unaccent extension). See the AddAccentInsensitiveSearch migration.
@@ -51,7 +52,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     /// <item><see cref="IHasCode"/> entities get a required, unique <c>Code</c>, filled in on insert
     /// by <see cref="CodeGenerationInterceptor"/> once the type is declared with <c>RegisterCode</c>.</item>
     /// </list>
-    /// Applied after the entity configurations, so these settings win over theirs.
+    /// Applied before the entity configurations, which can override any of it.
     /// </summary>
     private static void ApplyKeyAndCodeConventions(ModelBuilder builder)
     {

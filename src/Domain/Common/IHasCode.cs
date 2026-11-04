@@ -1,16 +1,16 @@
 namespace CleanArchitecture.Domain.Common;
 
 /// <summary>
-/// Entité porteuse d'un code métier lisible, distinct de sa clé primaire.
+/// An entity carrying a readable business code, distinct from its primary key.
 /// <para>
-/// La clé est un <see cref="Guid"/> : elle n'a de sens que pour la base et les relations, elle se
-/// génère sans aller-retour et elle ne fuit aucune information sur le volume de données. Le code
-/// (<c>PRJ-000123</c>) est ce qu'un humain lit, dicte au téléphone et retrouve dans un ticket ;
-/// il est attribué séquentiellement par <c>HiLoCodeGenerator</c> à l'insertion.
+/// The key is a <see cref="Guid"/>: it only matters to the database and to relations, it is
+/// generated without a round trip and it leaks nothing about the volume of data. The code
+/// (<c>PRJ-000123</c>) is what a human reads, dictates over the phone and finds in a ticket;
+/// it is assigned sequentially by <c>HiLoCodeGenerator</c> on insert.
 /// </para>
 /// <para>
-/// Séparer les deux évite d'avoir à choisir : une clé technique stable d'un côté, une référence
-/// métier lisible et unique de l'autre.
+/// Separating the two avoids having to choose: a stable technical key on one side, a readable
+/// and unique business reference on the other.
 /// </para>
 /// </summary>
 public interface IHasCode

@@ -38,15 +38,30 @@ SQLite / SQL Server options — those were removed). The only option is the clie
 
 ### 1. Install the template locally
 
-From the root of this repository:
+From the root of this repository, on the branch you want to use:
 
 ```powershell
-dotnet new install .
+.\build\repack.ps1                  # version 1.0.<commit count>, "-dirty" with local changes
+.\build\repack.ps1 -Version 1.2.0   # or an explicit version
 ```
 
-This registers the `ca-sln` (solution) and `ca-usecase` (command/query scaffolder) templates.
-Re-run it after pulling changes to refresh the locally installed copy. To uninstall:
-`dotnet new uninstall <path-to-this-repo>`.
+It packs the template as `OLuai.CleanArchitecture.Template` (`artifacts/packages/*.nupkg`) and
+installs that package in place of any previous install. This registers the `ca-sln` (solution)
+and `ca-usecase` (command/query scaffolder) templates. Because the package is a snapshot,
+switching branches in this folder no longer changes what `dotnet new ca-sln` generates: re-run
+the script when you want the new state. To uninstall:
+`dotnet new uninstall OLuai.CleanArchitecture.Template`.
+
+`dotnet new install .` still works, but installs the folder itself: the template then follows
+whatever branch is checked out. Keep it for iterating on the template.
+
+**On another machine**, install a released version from GitHub Packages (publishing a GitHub
+release tagged `vX.Y.Z` runs `.github/workflows/release.yml`):
+
+```powershell
+dotnet nuget add source https://nuget.pkg.github.com/OLuai/index.json -n github-oluai -u OLuai -p <PAT with read:packages>
+dotnet new install OLuai.CleanArchitecture.Template
+```
 
 ### 2. Create a project
 
@@ -148,7 +163,8 @@ Files the base may add that we deliberately don't use (NSwag configs, Angular `C
 ```powershell
 dotnet build CleanArchitecture.slnx          # backend still builds
 cd src/Web/ClientApp && npm install && npm run build   # frontend still builds
-dotnet new install .                          # refresh the locally installed template
+.\build\test.ps1                              # both client modes still generate and pass
+.\build\repack.ps1                            # refresh the installed template package
 ```
 
 If the OpenAPI surface changed, run `npm run generate-api` and commit the result of a clean
@@ -165,7 +181,8 @@ instantiation test (Section C).
 .uild	est.ps1 -ClientFramework None             # one mode only
 ```
 
-It installs the template from this folder, generates a solution per client mode, checks that no
+It installs this folder into a private template registry (`--debug:custom-hive`, so the package
+installed by `repack.ps1` is left alone), generates a solution per client mode, checks that no
 `UseApiOnly` marker leaked and that API-only output has no `ClientApp`, then builds and runs the
 tests. `.github/workflows/test-templates.yml` runs the same matrix on every push to `main`.
 

@@ -122,6 +122,7 @@
             ".github/workflows/release.yml",
             ".github/workflows/test-templates.yml",
             "build/repack.ps1",
+            "build/Template.csproj",
             "build/test.ps1"
           ]
         }

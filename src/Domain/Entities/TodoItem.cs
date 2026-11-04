@@ -1,8 +1,8 @@
 namespace CleanArchitecture.Domain.Entities;
 
-public class TodoItem : BaseAuditableEntity<int>
+public class TodoItem : BaseAuditableEntity<Guid>
 {
-    public int ListId { get; set; }
+    public Guid ListId { get; set; }
 
     public string? Title { get; set; }
 

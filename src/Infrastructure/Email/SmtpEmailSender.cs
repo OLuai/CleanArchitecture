@@ -12,12 +12,12 @@ using CleanArchitecture.Domain.Enums;
 namespace CleanArchitecture.Infrastructure.Email;
 
 /// <summary>
-/// Envoie par SMTP, avec MailKit — <c>System.Net.Mail.SmtpClient</c> est déconseillé pour du code
-/// neuf par sa propre documentation.
+/// Sends over SMTP, with MailKit — <c>System.Net.Mail.SmtpClient</c> is discouraged for new code
+/// by its own documentation.
 /// <para>
-/// Les réglages sont relus à chaque envoi : la ligne enregistrée si elle existe, sinon la
-/// configuration du déploiement. Une correction depuis l'écran d'administration s'applique donc
-/// au message suivant, sans redémarrage — c'est tout l'intérêt de pouvoir les saisir.
+/// The settings are re-read on every send: the saved row if there is one, otherwise the
+/// deployment's configuration. A correction made from the administration screen therefore applies
+/// to the next message, without a restart — which is the whole point of being able to enter them.
 /// </para>
 /// </summary>
 public sealed class SmtpEmailSender : IEmailSender
@@ -62,9 +62,9 @@ public sealed class SmtpEmailSender : IEmailSender
         {
             using var client = new SmtpClient { Timeout = (int)_options.Timeout.TotalMilliseconds };
 
-            // Le mode est celui qui a été choisi, jamais négocié : MailKit propose bien un
-            // « StartTls si disponible », qui retombe en clair sans le dire quand le serveur ne
-            // l'annonce pas. Ni StartTls ni SslOnConnect ne tolèrent un certificat invalide.
+            // The mode is the one that was chosen, never negotiated: MailKit does offer a
+            // "StartTls if available", which silently falls back to plain text when the server does not
+            // advertise it. Neither StartTls nor SslOnConnect tolerates an invalid certificate.
             var security = settings.Security switch
             {
                 SmtpSecurity.StartTls => SecureSocketOptions.StartTls,
@@ -87,8 +87,8 @@ public sealed class SmtpEmailSender : IEmailSender
         catch (Exception ex) when (ex is not OperationCanceledException
                                    || !cancellationToken.IsCancellationRequested)
         {
-            // Le destinataire n'est pas journalisé, et le message non plus. L'erreur du relais
-            // remonte en revanche à l'appelant : c'est elle qui dit quel champ corriger.
+            // The recipient is not logged, and neither is the message. The relay's error does
+            // go back up to the caller, though: it is what says which field to fix.
             _logger.LogWarning(ex, "SMTP send failed against {Host}:{Port}", settings.Host, settings.Port);
 
             return EmailResult.Failure(ex.Message);
@@ -96,8 +96,8 @@ public sealed class SmtpEmailSender : IEmailSender
     }
 
     /// <summary>
-    /// Les réglages qui s'appliquent, mot de passe déchiffré, ou <c>null</c> si aucun serveur
-    /// n'est renseigné nulle part.
+    /// The settings that apply, with the password decrypted, or <c>null</c> if no server
+    /// is specified anywhere.
     /// </summary>
     private async Task<ResolvedSettings?> ResolveAsync(CancellationToken cancellationToken)
     {

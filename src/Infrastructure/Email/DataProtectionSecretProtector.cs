@@ -5,15 +5,15 @@ using Microsoft.Extensions.Logging;
 namespace CleanArchitecture.Infrastructure.Email;
 
 /// <summary>
-/// <see cref="ISecretProtector"/> au-dessus d'ASP.NET Data Protection, dont l'anneau de clés est
-/// persisté en base — voir <c>PersistKeysToDbContext</c>. Un secret chiffré survit donc aux
-/// redéploiements et reste lisible par toutes les instances.
+/// <see cref="ISecretProtector"/> on top of ASP.NET Data Protection, whose key ring is
+/// persisted in the database — see <c>PersistKeysToDbContext</c>. An encrypted secret therefore survives
+/// redeployments and stays readable by every instance.
 /// </summary>
 public sealed class DataProtectionSecretProtector : ISecretProtector
 {
     /// <summary>
-    /// La finalité isole ce chiffrement des autres usages de Data Protection : un cookie
-    /// d'authentification ne peut pas être présenté ici comme un mot de passe, ni l'inverse.
+    /// The purpose isolates this encryption from other Data Protection uses: an authentication
+    /// cookie cannot be presented here as a password, nor the reverse.
     /// </summary>
     private const string Purpose = "CleanArchitecture.Settings.Secret.v1";
 
@@ -37,8 +37,8 @@ public sealed class DataProtectionSecretProtector : ISecretProtector
         }
         catch (Exception ex)
         {
-            // Anneau de clés perdu, ou donnée abîmée. Journalisé sans la valeur, et l'appelant
-            // échoue proprement : un envoi qui ne part pas vaut mieux qu'un démarrage qui casse.
+            // Lost key ring, or corrupted data. Logged without the value, and the caller
+            // fails cleanly: a send that does not go out beats a startup that breaks.
             _logger.LogError(ex, "A stored secret could not be decrypted; the key ring may have changed");
             return null;
         }

@@ -74,11 +74,14 @@ if (builder.ExecutionContext.IsRunMode)
     // Development mailbox: receives everything the application sends and shows it on its web UI,
     // linked from the dashboard. Passed to the Web as Smtp__* configuration, so /admin/email always
     // has an environment source on a development machine; a row saved from that screen overrides
-    // it, exactly as in production. Fixed host ports so a test plan can name the address. In
-    // publish mode none of this: the deployment brings its own relay.
+    // it, exactly as in production. Shared across solutions like PostgreSQL (see
+    // Services.Shared), on fixed host ports so a test plan can name the address. In publish mode
+    // none of this: the deployment brings its own relay.
     var mailpit = builder.AddMailPit(Services.Mailpit,
-            httpPort: Services.MailpitHttpHostPort,
-            smtpPort: Services.MailpitSmtpHostPort)
+            httpPort: Services.Shared.MailpitHttpHostPort,
+            smtpPort: Services.Shared.MailpitSmtpHostPort)
+        .WithContainerName(Services.Shared.MailpitContainer)
+        .WithLifetime(ContainerLifetime.Persistent)
         .WithUrlForEndpoint("http", url => url.DisplayText = "Mailpit");
 
     var smtp = mailpit.GetEndpoint("smtp");

@@ -62,3 +62,7 @@ jobs:
     #endif
     - name: Test solution
       run: dotnet test --no-build --configuration Release
+      env:
+        # The acceptance tests start the real AppHost, which reads the shared PostgreSQL password
+        # from this variable. The runner's container is created fresh, so any value works.
+        CA_SHARED_PG_PWD: ci-only-password

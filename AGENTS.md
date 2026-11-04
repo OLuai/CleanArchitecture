@@ -1,7 +1,12 @@
 # CleanArchitecture
 
 Clean Architecture solution on .NET 10 with .NET Aspire orchestration and an optional React/Vite
-dashboard. This repository is also a `dotnet new` template — see `TEMPLATE_GUIDE.md`.
+dashboard.
+<!--#if (false)-->
+This repository is also a `dotnet new` template — see `TEMPLATE_GUIDE.md`. Lines between the
+`#if (false)` markers in this file describe the template itself and are dropped from generated
+solutions.
+<!--#endif-->
 
 ## Commands
 
@@ -13,7 +18,10 @@ dashboard. This repository is also a `dotnet new` template — see `TEMPLATE_GUI
 - **Generate TypeScript API client (React mode):** `npm run generate-api` (from `src\Web\ClientApp`)
 - **Frontend dev (React mode):** `npm start` (from `src\Web\ClientApp`; auto-runs `generate-api` via prestart hook)
 - **EF migrations:** `.\scripts\db\Add-Migration.ps1 -Name Foo`, `.\scripts\db\Update-Database.ps1`
+<!--#if (false)-->
 - **Template smoke test:** `.\build\test.ps1` (generates, builds and tests both client modes)
+- **Install the template:** `.\build\repack.ps1` (versioned package, independent of the checked-out branch)
+<!--#endif-->
 
 ## Architecture
 
@@ -98,7 +106,9 @@ Absent from solutions generated with `--client-framework None`: there `src/Web/C
   messages (confirmation, password reset) go through the same relay (`IdentityEmailSender`).
 - **In run mode the AppHost starts Mailpit and points `Smtp__*` at it** (`localhost:1025`, no
   TLS), so on a development machine every message is readable on the dashboard's **Mailpit** link
-  (`:8025`). Nothing of this exists in publish mode: a deployment brings its own relay.
+  (`:8025`). Like PostgreSQL, the container (`ca-shared-mailpit`) is shared by every generated
+  solution, so all of them deliver into one inbox. Nothing of this exists in publish mode: a
+  deployment brings its own relay.
 
 ## Authorization
 
@@ -137,5 +147,7 @@ Absent from solutions generated with `--client-framework None`: there `src/Web/C
 - Build output in `artifacts/` (not the default `obj/`)
 - Test service names defined in `src/Shared/Services.cs` constants
 - Comments explain *why*, in English; user-facing strings may be French
+<!--#if (false)-->
 - `#if (!UseApiOnly)` directives are template conditionals — see `TEMPLATE_GUIDE.md` section C
   before touching them
+<!--#endif-->

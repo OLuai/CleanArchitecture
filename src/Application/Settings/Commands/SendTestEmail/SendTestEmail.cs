@@ -5,29 +5,29 @@ using CleanArchitecture.Domain.Constants;
 
 namespace CleanArchitecture.Application.Settings.Commands.SendTestEmail;
 
-/// <summary>Ce que le relais a répondu, tel quel.</summary>
+/// <summary>What the relay answered, as-is.</summary>
 public record TestEmailResultDto
 {
     public required bool Sent { get; init; }
 
     /// <summary>
-    /// L'erreur brute du relais. Rendue à l'écran sans reformulation : « échec » tout court
-    /// n'apprend rien à qui règle un SMTP, alors que « 535 authentication failed » désigne le
-    /// champ à corriger.
+    /// The raw error from the relay. Shown on screen without rewording: a plain "failed"
+    /// tells nothing to whoever is tuning an SMTP setup, whereas "535 authentication failed" points to the
+    /// field to fix.
     /// </summary>
     public string? Error { get; init; }
 
-    /// <summary>Adresse effectivement destinataire, pour que l'administrateur sache où regarder.</summary>
+    /// <summary>Address that actually received the message, so the administrator knows where to look.</summary>
     public required string SentTo { get; init; }
 }
 
 /// <summary>
-/// Envoie un message d'essai à l'adresse du compte connecté.
+/// Sends a test message to the signed-in account's address.
 /// <para>
-/// L'adresse n'est pas un paramètre, et ce n'est pas une simplification : un point d'entrée qui
-/// envoie un message arbitraire à une adresse arbitraire, via le relais du client, est un relais
-/// de spam avec sa réputation d'expéditeur en jeu. S'envoyer un message à soi-même suffit
-/// entièrement à vérifier un réglage.
+/// The address is not a parameter, and that is not a simplification: an endpoint that
+/// sends an arbitrary message to an arbitrary address, through the customer's relay, is a spam
+/// relay with the customer's sender reputation at stake. Sending a message to oneself is enough
+/// to verify a setting.
 /// </para>
 /// </summary>
 [Authorize(Permissions = Permissions.Settings.ManageEmail)]

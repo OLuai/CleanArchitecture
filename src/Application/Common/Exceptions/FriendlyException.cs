@@ -1,10 +1,9 @@
 namespace CleanArchitecture.Application.Common.Exceptions;
 
 /// <summary>
-/// Exception levée volontairement par le code métier pour transmettre un message
-/// compréhensible au client de l'API. Le handler convertit cette exception en
-/// ProblemDetails en utilisant les champs <see cref="Title"/>, <see cref="ErrorCode"/>
-/// et <see cref="StatusCode"/>.
+/// Exception deliberately thrown by business code to pass an understandable message
+/// on to the API client. The handler converts it into a ProblemDetails using the
+/// <see cref="Title"/>, <see cref="ErrorCode"/> and <see cref="StatusCode"/> fields.
 /// </summary>
 public class FriendlyException : Exception
 {

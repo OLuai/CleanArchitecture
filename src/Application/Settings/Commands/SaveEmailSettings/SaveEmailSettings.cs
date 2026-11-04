@@ -7,7 +7,7 @@ using CleanArchitecture.Domain.Enums;
 namespace CleanArchitecture.Application.Settings.Commands.SaveEmailSettings;
 
 /// <summary>
-/// Enregistre les réglages du relais, en surcharge de ceux du déploiement.
+/// Saves the relay settings, overriding the deployment's.
 /// </summary>
 [Authorize(Permissions = Permissions.Settings.ManageEmail)]
 public record SaveEmailSettingsCommand : IRequest
@@ -21,10 +21,10 @@ public record SaveEmailSettingsCommand : IRequest
     public string? UserName { get; init; }
 
     /// <summary>
-    /// <c>null</c> laisse le mot de passe enregistré tel quel — c'est ce que fait l'écran quand
-    /// on ne touche pas au champ, puisqu'il ne peut pas le pré-remplir : il ne l'a jamais reçu.
-    /// Une valeur, même vide, le remplace ; une chaîne vide retire donc le mot de passe, ce
-    /// qu'attendent les relais internes qui n'en demandent pas.
+    /// <c>null</c> leaves the saved password untouched — which is what the screen sends when
+    /// the field is not touched, since it cannot pre-fill it: it never received it.
+    /// Any value, even an empty one, replaces it; an empty string therefore removes the password, which
+    /// is what internal relays that do not require one expect.
     /// </summary>
     public string? Password { get; init; }
 
@@ -51,8 +51,8 @@ public class SaveEmailSettingsCommandHandler : IRequestHandler<SaveEmailSettings
 
         if (entity is null)
         {
-            // Clé constante : c'est elle qui interdit une deuxième configuration, y compris sous
-            // deux enregistrements simultanés — le second échoue sur la clé primaire.
+            // Constant key: it is what forbids a second configuration, even under
+            // two simultaneous inserts — the second one fails on the primary key.
             entity = new EmailSettings { Id = EmailSettings.SingletonId };
             _context.EmailSettings.Add(entity);
         }

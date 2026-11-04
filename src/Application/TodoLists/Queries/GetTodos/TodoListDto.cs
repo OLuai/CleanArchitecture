@@ -9,7 +9,9 @@ public class TodoListDto
         Items = [];
     }
 
-    public int Id { get; init; }
+    public Guid Id { get; init; }
+
+    public string Code { get; init; } = string.Empty;
 
     public string? Title { get; init; }
 

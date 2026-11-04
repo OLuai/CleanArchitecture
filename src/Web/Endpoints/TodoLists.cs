@@ -34,7 +34,7 @@ public class TodoLists : IEndpointGroup
 
     [EndpointSummary("Create a new Todo List")]
     [EndpointDescription("Creates a new todo list using the provided details and returns the ID of the created list.")]
-    public static async Task<Created<int>> CreateTodoList(ISender sender, CreateTodoListCommand command)
+    public static async Task<Created<Guid>> CreateTodoList(ISender sender, CreateTodoListCommand command)
     {
         var id = await sender.Send(command);
 
@@ -43,7 +43,7 @@ public class TodoLists : IEndpointGroup
 
     [EndpointSummary("Update a Todo List")]
     [EndpointDescription("Updates the specified todo list. The ID in the URL must match the ID in the payload.")]
-    public static async Task<Results<NoContent, BadRequest>> UpdateTodoList(ISender sender, int id, UpdateTodoListCommand command)
+    public static async Task<Results<NoContent, BadRequest>> UpdateTodoList(ISender sender, Guid id, UpdateTodoListCommand command)
     {
         if (id != command.Id) return TypedResults.BadRequest();
 
@@ -54,7 +54,7 @@ public class TodoLists : IEndpointGroup
 
     [EndpointSummary("Delete a Todo List")]
     [EndpointDescription("Deletes the todo list with the specified ID.")]
-    public static async Task<NoContent> DeleteTodoList(ISender sender, int id)
+    public static async Task<NoContent> DeleteTodoList(ISender sender, Guid id)
     {
         await sender.Send(new DeleteTodoListCommand(id));
 

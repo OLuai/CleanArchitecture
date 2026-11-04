@@ -6,11 +6,11 @@ using CleanArchitecture.Domain.Entities;
 namespace CleanArchitecture.Application.Settings.Commands.ResetEmailSettings;
 
 /// <summary>
-/// Retire les réglages enregistrés, de sorte que ceux du déploiement redeviennent ceux qui
-/// s'appliquent.
+/// Removes the saved settings, so that the deployment's settings become the ones that
+/// apply again.
 /// <para>
-/// C'est la porte de sortie du jour où une saisie depuis l'écran masque silencieusement des
-/// variables d'environnement mises à jour : sans elle, il faudrait toucher la base à la main.
+/// This is the way out for the day a value typed in the screen silently masks updated
+/// environment variables: without it, the database would have to be edited by hand.
 /// </para>
 /// </summary>
 [Authorize(Permissions = Permissions.Settings.ManageEmail)]

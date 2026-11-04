@@ -25,7 +25,7 @@ public class TodoItems : IEndpointGroup
 
     [EndpointSummary("Create a new Todo Item")]
     [EndpointDescription("Creates a new todo item using the provided details and returns the ID of the created item.")]
-    public static async Task<Created<int>> CreateTodoItem(ISender sender, CreateTodoItemCommand command)
+    public static async Task<Created<Guid>> CreateTodoItem(ISender sender, CreateTodoItemCommand command)
     {
         var id = await sender.Send(command);
 
@@ -34,7 +34,7 @@ public class TodoItems : IEndpointGroup
 
     [EndpointSummary("Update a Todo Item")]
     [EndpointDescription("Updates the specified todo item. The ID in the URL must match the ID in the payload.")]
-    public static async Task<Results<NoContent, BadRequest>> UpdateTodoItem(ISender sender, int id, UpdateTodoItemCommand command)
+    public static async Task<Results<NoContent, BadRequest>> UpdateTodoItem(ISender sender, Guid id, UpdateTodoItemCommand command)
     {
         if (id != command.Id)
             return TypedResults.BadRequest();
@@ -46,7 +46,7 @@ public class TodoItems : IEndpointGroup
 
     [EndpointSummary("Update Todo Item Details")]
     [EndpointDescription("Updates the detail fields of a specific todo item. The ID in the URL must match the ID in the payload.")]
-    public static async Task<Results<NoContent, BadRequest>> UpdateTodoItemDetail(ISender sender, int id, UpdateTodoItemDetailCommand command)
+    public static async Task<Results<NoContent, BadRequest>> UpdateTodoItemDetail(ISender sender, Guid id, UpdateTodoItemDetailCommand command)
     {
         if (id != command.Id) return TypedResults.BadRequest();
 
@@ -57,7 +57,7 @@ public class TodoItems : IEndpointGroup
 
     [EndpointSummary("Delete a Todo Item")]
     [EndpointDescription("Deletes the todo item with the specified ID.")]
-    public static async Task<NoContent> DeleteTodoItem(ISender sender, int id)
+    public static async Task<NoContent> DeleteTodoItem(ISender sender, Guid id)
     {
         await sender.Send(new DeleteTodoItemCommand(id));
 

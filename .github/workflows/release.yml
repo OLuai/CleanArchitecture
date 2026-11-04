@@ -1,15 +1,22 @@
 name: Release
 
+# Publishing a GitHub release tagged vX.Y.Z packs the template as
+# OLuai.CleanArchitecture.Template X.Y.Z and pushes it to this account's GitHub Packages feed.
+# Install it on another machine with:
+#   dotnet nuget add source https://nuget.pkg.github.com/OLuai/index.json -n github-oluai -u OLuai -p <PAT with read:packages>
+#   dotnet new install OLuai.CleanArchitecture.Template
+
 on:
   release:
     types: [published]
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   publish:
-    name: Publish to NuGet.org
+    name: Publish to GitHub Packages
 
     runs-on: ubuntu-latest
 
@@ -17,23 +24,12 @@ jobs:
       - uses: actions/checkout@v7
         name: Checkout
 
-      - uses: nuget/setup-nuget@v4
-        name: Set up NuGet
-        with:
-          nuget-version: 'latest'
-
-      - name: Install Mono
-        run: sudo apt-get update && sudo apt-get install -y mono-complete
+      - name: Install .NET
+        uses: actions/setup-dotnet@v6
 
       - name: Extract version
         id: version
         run: echo "value=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
-
-      - name: Update template version
-        run: |
-          jq --arg v "${{ steps.version.outputs.value }}" \
-            '.symbols.10.0.0-preview.parameters.value = $v' \
-            .template.config/template.json > tmp.json && mv tmp.json .template.config/template.json
 
       - name: Update nuspec release notes
         env:
@@ -50,13 +46,17 @@ jobs:
           EOF
 
       - name: Pack
-        run: nuget pack CleanArchitecture.nuspec -NoDefaultExcludes -Version ${{ steps.version.outputs.value }}
-        
+        run: dotnet pack build/Template.csproj -p:PackageVersion=${{ steps.version.outputs.value }} -o artifacts/packages
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v7
         with:
           name: nuget-package
-          path: '*.nupkg'
+          path: artifacts/packages/*.nupkg
 
       - name: Publish
-        run: nuget push *.nupkg -Source 'https://api.nuget.org/v3/index.json' -ApiKey ${{secrets.NUGET_API_KEY}} -SkipDuplicate
+        run: >
+          dotnet nuget push artifacts/packages/*.nupkg
+          --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+          --api-key ${{ secrets.GITHUB_TOKEN }}
+          --skip-duplicate

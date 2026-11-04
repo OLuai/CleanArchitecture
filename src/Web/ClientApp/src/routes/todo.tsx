@@ -81,10 +81,10 @@ function TodoPage() {
   const deleteItem = useDeleteTodoItem(mutationOpts);
   const updateItemDetail = useUpdateTodoItemDetail(mutationOpts);
 
-  const [selectedListId, setSelectedListId] = useState<number | null>(null);
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [addingItem, setAddingItem] = useState(false);
   const [newItemTitle, setNewItemTitle] = useState('');
-  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
   // Fall back to the first list until the user explicitly picks one.
@@ -93,7 +93,7 @@ function TodoPage() {
   const remaining = (list: TodoListDto) =>
     (list.items ?? []).filter((i) => !i.done).length;
 
-  const selectList = (id: number | null) => {
+  const selectList = (id: string | null) => {
     setSelectedListId(id);
     setAddingItem(false);
     setNewItemTitle('');
@@ -195,7 +195,7 @@ function TodoPage() {
   // ── Item details dialog ──────────────────────────────────────────────────────
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<TodoItemDto | null>(null);
-  const [detailListId, setDetailListId] = useState<number | undefined>(undefined);
+  const [detailListId, setDetailListId] = useState<string | undefined>(undefined);
   const [detailPriority, setDetailPriority] = useState<number | undefined>(undefined);
   const [detailNote, setDetailNote] = useState('');
 
@@ -283,6 +283,10 @@ function TodoPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold" style={{ color: selectedList.colour ?? undefined }}>
                 {selectedList.title}
+                {/* The business code: what a user quotes, unlike the GUID in the URL and API. */}
+                <span className="text-muted-foreground ml-2 font-mono text-xs font-normal">
+                  {selectedList.code}
+                </span>
               </h2>
               <Button variant="ghost" size="icon" aria-label="List options" onClick={openOptions}>
                 <SettingsIcon />
@@ -465,7 +469,7 @@ function TodoPage() {
               <Label>List</Label>
               <Select
                 value={detailListId == null ? undefined : String(detailListId)}
-                onValueChange={(v) => setDetailListId(Number(v))}
+                onValueChange={(v) => setDetailListId(v)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a list" />

@@ -1,6 +1,6 @@
 namespace CleanArchitecture.Application.Common.Interfaces;
 
-/// <summary>Ce qu'un envoi a donné. Le message d'erreur remonte tel quel à l'écran de réglages.</summary>
+/// <summary>The outcome of a send. The error message is passed as-is to the settings screen.</summary>
 public record EmailResult(bool Sent, string? Error)
 {
     public static EmailResult Success() => new(true, null);
@@ -9,21 +9,21 @@ public record EmailResult(bool Sent, string? Error)
 }
 
 /// <summary>
-/// Envoi d'un message par le relais configuré.
+/// Sends a message through the configured relay.
 /// <para>
-/// Les réglages sont résolus à chaque envoi — la ligne en base si elle existe, sinon la
-/// configuration — de sorte qu'une correction depuis l'écran d'administration s'applique
-/// immédiatement, sans redémarrage.
+/// The settings are resolved on every send — the database row if there is one, otherwise the
+/// configuration — so a correction made from the administration screen applies
+/// immediately, without a restart.
 /// </para>
 /// </summary>
 public interface IEmailSender
 {
-    /// <summary>Faux quand aucun relais n'est configuré, ni en base ni dans l'environnement.</summary>
+    /// <summary>False when no relay is configured, neither in the database nor in the environment.</summary>
     Task<bool> IsConfiguredAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// N'échoue jamais par exception : le résultat porte l'erreur. Un e-mail qui ne part pas ne
-    /// doit pas faire tomber la requête qui l'a déclenché — une inscription, par exemple.
+    /// Never fails with an exception: the result carries the error. An email that cannot be sent must not
+    /// bring down the request that triggered it — a sign-up, for example.
     /// </summary>
     Task<EmailResult> SendAsync(
         string to, string subject, string htmlBody, CancellationToken cancellationToken);

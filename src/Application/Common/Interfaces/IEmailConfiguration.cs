@@ -3,13 +3,12 @@ using CleanArchitecture.Domain.Enums;
 namespace CleanArchitecture.Application.Common.Interfaces;
 
 /// <summary>
-/// Les réglages SMTP tels que le déploiement les fournit : section <c>Smtp</c> de la
-/// configuration, donc en pratique les variables d'environnement <c>Smtp__Host</c>,
-/// <c>Smtp__Port</c>, <c>Smtp__Security</c>, <c>Smtp__UserName</c>, <c>Smtp__Password</c>,
-/// <c>Smtp__FromAddress</c>…
+/// The SMTP settings as the deployment provides them: the <c>Smtp</c> section of the
+/// configuration, in practice the <c>Smtp__Host</c>, <c>Smtp__Port</c>, <c>Smtp__Security</c>,
+/// <c>Smtp__UserName</c>, <c>Smtp__Password</c> and <c>Smtp__FromAddress</c> environment variables…
 /// <para>
-/// C'est le socle : une plateforme démarre configurée sans que personne n'ouvre l'écran
-/// d'administration. Une ligne <c>EmailSettings</c> en base le surcharge ensuite.
+/// This is the baseline: a platform starts up configured without anyone opening the
+/// administration screen. An <c>EmailSettings</c> row in the database then overrides it.
 /// </para>
 /// </summary>
 public interface IEmailConfiguration
@@ -23,8 +22,8 @@ public interface IEmailConfiguration
     string? UserName { get; }
 
     /// <summary>
-    /// En clair, car il vient de l'environnement. Il ne sort jamais par l'API : le DTO ne porte
-    /// qu'un booléen disant qu'il existe.
+    /// Plain text, because it comes from the environment. It never leaves through the API: the DTO only
+    /// carries a boolean saying that it exists.
     /// </summary>
     string? Password { get; }
 

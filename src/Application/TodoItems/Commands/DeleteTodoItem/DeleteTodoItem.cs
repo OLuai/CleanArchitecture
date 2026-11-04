@@ -5,7 +5,7 @@ using CleanArchitecture.Domain.Constants;
 namespace CleanArchitecture.Application.TodoItems.Commands.DeleteTodoItem;
 
 [Authorize(Permissions = Permissions.TodoItems.Delete)]
-public record DeleteTodoItemCommand(int Id) : IRequest;
+public record DeleteTodoItemCommand(Guid Id) : IRequest;
 
 public class DeleteTodoItemCommandHandler : IRequestHandler<DeleteTodoItemCommand>
 {

@@ -27,19 +27,17 @@ Cookie: {{AuthCookieName}}={{AuthCookieValue}}
 
 ###
 
-# GET TodoLists
+# Keys are UUID v7. Paste ids returned by the POST requests (or listed by GET TodoLists) here.
+@ListId = 00000000-0000-0000-0000-000000000000
+@ItemId = 00000000-0000-0000-0000-000000000000
+
+# GET TodoLists (lists with their items and codes)
 GET {{Web_HostAddress}}/api/TodoLists
 Cookie: {{AuthCookieName}}={{AuthCookieValue}}
 
 ###
 
-#GET TodoList
-GET {{Web_HostAddress}}/api/TodoLists/1
-Cookie: {{AuthCookieName}}={{AuthCookieValue}}
-
-###
-
-# POST TodoLists
+# POST TodoLists (returns the new list's id; its LST-000001 code is assigned on save)
 POST {{Web_HostAddress}}/api/TodoLists
 Cookie: {{AuthCookieName}}={{AuthCookieValue}}
 Content-Type: application/json
@@ -52,28 +50,20 @@ Content-Type: application/json
 ###
 
 # PUT TodoLists
-PUT {{Web_HostAddress}}/api/TodoLists/1
+PUT {{Web_HostAddress}}/api/TodoLists/{{ListId}}
 Cookie: {{AuthCookieName}}={{AuthCookieValue}}
 Content-Type: application/json
 
 // UpdateTodoListCommand
 {
-  "Id": 1,
+  "Id": "{{ListId}}",
   "Title": "Product Backlog"
 }
 
 ###
 
 # DELETE TodoLists
-DELETE {{Web_HostAddress}}/api/TodoLists/1
-Cookie: {{AuthCookieName}}={{AuthCookieValue}}
-
-###
-
-# GET TodoItems
-@PageNumber = 1
-@PageSize = 10
-GET {{Web_HostAddress}}/api/TodoItems?ListId=1&PageNumber={{PageNumber}}&PageSize={{PageSize}}
+DELETE {{Web_HostAddress}}/api/TodoLists/{{ListId}}
 Cookie: {{AuthCookieName}}={{AuthCookieValue}}
 
 ###
@@ -85,21 +75,21 @@ Content-Type: application/json
 
 // CreateTodoItemCommand
 {
-  "ListId": 1,
+  "ListId": "{{ListId}}",
   "Title": "Eat a burrito 🌯"
 }
 
 ###
 
-#PUT TodoItems UpdateItemDetails
-PUT {{Web_HostAddress}}/api/TodoItems/UpdateItemDetails?Id=1
+# PATCH TodoItems detail
+PATCH {{Web_HostAddress}}/api/TodoItems/UpdateDetail/{{ItemId}}
 Cookie: {{AuthCookieName}}={{AuthCookieValue}}
 Content-Type: application/json
 
 // UpdateTodoItemDetailCommand
 {
-  "Id": 1,
-  "ListId": 1,
+  "Id": "{{ItemId}}",
+  "ListId": "{{ListId}}",
   "Priority": 3,
   "Note": "This is a good idea!"
 }
@@ -107,13 +97,13 @@ Content-Type: application/json
 ###
 
 # PUT TodoItems
-PUT {{Web_HostAddress}}/api/TodoItems/1
+PUT {{Web_HostAddress}}/api/TodoItems/{{ItemId}}
 Cookie: {{AuthCookieName}}={{AuthCookieValue}}
 Content-Type: application/json
 
 // UpdateTodoItemCommand
 {
-  "Id": 1,
+  "Id": "{{ItemId}}",
   "Title": "Eat a yummy burrito 🌯",
   "Done": true
 }
@@ -121,7 +111,7 @@ Content-Type: application/json
 ###
 
 # DELETE TodoItem
-DELETE {{Web_HostAddress}}/api/TodoItems/1
+DELETE {{Web_HostAddress}}/api/TodoItems/{{ItemId}}
 Cookie: {{AuthCookieName}}={{AuthCookieValue}}
 
 ###

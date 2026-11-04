@@ -1,16 +1,16 @@
 namespace CleanArchitecture.Application.Common.Interfaces;
 
 /// <summary>
-/// Chiffre une valeur sensible destinée à être rangée en base — aujourd'hui le mot de passe du
-/// relais SMTP.
+/// Encrypts a sensitive value meant to be stored in the database — today the SMTP relay
+/// password.
 /// <para>
-/// Repose sur l'anneau de clés d'ASP.NET Data Protection, lui-même persisté en base : le secret
-/// survit donc aux redéploiements et reste lisible par toutes les instances, ce qu'une clé tirée
-/// au démarrage ne permettrait pas.
+/// Relies on the ASP.NET Data Protection key ring, itself persisted in the database: the secret
+/// therefore survives redeployments and stays readable by every instance, which a key generated
+/// at startup would not allow.
 /// </para>
 /// <para>
-/// <see cref="Unprotect"/> n'a qu'un seul appelant légitime, l'expéditeur d'e-mails au moment de
-/// se connecter au relais. Aucun DTO ne porte de valeur déchiffrée.
+/// <see cref="Unprotect"/> has a single legitimate caller, the email sender, when it
+/// connects to the relay. No DTO carries a decrypted value.
 /// </para>
 /// </summary>
 public interface ISecretProtector
@@ -18,8 +18,8 @@ public interface ISecretProtector
     string Protect(string plaintext);
 
     /// <summary>
-    /// Renvoie <c>null</c> si la valeur ne peut pas être déchiffrée — anneau de clés perdu,
-    /// donnée abîmée. Un envoi échoue alors proprement au lieu de lever au démarrage.
+    /// Returns <c>null</c> if the value cannot be decrypted — lost key ring,
+    /// corrupted data. A send then fails cleanly instead of throwing at startup.
     /// </summary>
     string? Unprotect(string protectedValue);
 }

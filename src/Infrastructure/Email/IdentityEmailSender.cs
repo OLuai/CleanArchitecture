@@ -7,18 +7,18 @@ using ApplicationEmailSender = CleanArchitecture.Application.Common.Interfaces.I
 namespace CleanArchitecture.Infrastructure.Email;
 
 /// <summary>
-/// Branche les messages d'ASP.NET Identity — confirmation d'adresse, réinitialisation de mot de
-/// passe — sur le relais configuré.
+/// Plugs ASP.NET Identity's messages — address confirmation, password
+/// reset — into the configured relay.
 /// <para>
-/// Sans cet adaptateur, <c>AddApiEndpoints()</c> enregistre un expéditeur qui ne fait rien : les
-/// points d'entrée répondaient 200, l'écran affichait « un lien de confirmation vous a été
-/// envoyé », et rien ne partait jamais.
+/// Without this adapter, <c>AddApiEndpoints()</c> registers a sender that does nothing: the
+/// endpoints answered 200, the screen displayed "a confirmation link has been
+/// sent to you", and nothing was ever sent.
 /// </para>
 /// <para>
-/// Singleton, et une portée ouverte à chaque envoi : <c>MapIdentityApi</c> résout cet expéditeur
-/// depuis le conteneur racine, au moment où les routes sont déclarées. Le déclarer <c>Scoped</c>
-/// fait échouer la validation du conteneur au démarrage — l'expéditeur réel, lui, dépend du
-/// <c>DbContext</c> et reste donc résolu par appel.
+/// Singleton, with a scope opened on every send: <c>MapIdentityApi</c> resolves this sender
+/// from the root container, when the routes are declared. Declaring it <c>Scoped</c>
+/// makes container validation fail at startup — the real sender, for its part, depends on the
+/// <c>DbContext</c> and is therefore resolved per call.
 /// </para>
 /// </summary>
 public sealed class IdentityEmailSender : IEmailSender<ApplicationUser>
@@ -61,9 +61,9 @@ public sealed class IdentityEmailSender : IEmailSender<ApplicationUser>
              """);
 
     /// <summary>
-    /// Identity attend un <c>Task</c> sans résultat et ne sait rien faire d'un échec. L'erreur est
-    /// donc absorbée ici — elle est déjà journalisée par l'expéditeur — plutôt que de faire
-    /// échouer une inscription parce que le relais est indisponible.
+    /// Identity expects a result-less <c>Task</c> and cannot do anything with a failure. The error is
+    /// therefore swallowed here — the sender has already logged it — rather than making
+    /// a sign-up fail because the relay is unavailable.
     /// </summary>
     private async Task SendAsync(string to, string subject, string htmlBody)
     {

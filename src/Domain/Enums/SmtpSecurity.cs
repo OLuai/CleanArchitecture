@@ -3,26 +3,25 @@ using System.Text.Json.Serialization;
 namespace CleanArchitecture.Domain.Enums;
 
 /// <summary>
-/// Comment la connexion au relais est protégée.
+/// How the connection to the relay is protected.
 /// <para>
-/// Trois valeurs explicites plutôt qu'un « négocier si disponible » : une négociation
-/// opportuniste retombe silencieusement en clair quand le serveur n'annonce pas STARTTLS, et ce
-/// sont des liens de réinitialisation de mot de passe qui passent dans ces messages. Le choix se
-/// fait, il ne se devine pas.
+/// Three explicit values rather than a "negotiate if available": opportunistic negotiation
+/// silently falls back to plain text when the server does not advertise STARTTLS, and it is
+/// password reset links that travel in these messages. The choice is made, not guessed.
 /// </para>
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<SmtpSecurity>))]
 public enum SmtpSecurity
 {
     /// <summary>
-    /// Aucun chiffrement. Réservé à un relais joignable uniquement depuis le réseau privé — sur
-    /// Internet, identifiants et contenu circulent en clair.
+    /// No encryption. Reserved for a relay reachable only from the private network — on the
+    /// Internet, credentials and content travel in plain text.
     /// </summary>
     None = 0,
 
-    /// <summary>Connexion en clair puis passage en TLS. Le port 587 en pratique.</summary>
+    /// <summary>Plain-text connection, then upgraded to TLS. Port 587 in practice.</summary>
     StartTls = 1,
 
-    /// <summary>TLS dès la connexion. Le port 465.</summary>
+    /// <summary>TLS from the start of the connection. Port 465.</summary>
     Tls = 2
 }
